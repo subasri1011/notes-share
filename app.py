@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, abort
 import sqlite3
 import os
+import psycopg2
+import psycopg2.extras
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash
 import uuid
@@ -96,11 +98,67 @@ ALLOWED_EXTENSIONS = {
     'txt', 'xlsx', 'xls', 'csv', 'py', 'java', 'cpp', 'c', 'js', 'html', 'css'
 }
 DB_NAME = "users.db"
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+class DBWrapper:
+    def __init__(self, conn, is_pg):
+        self.conn = conn
+        self.is_pg = is_pg
+    def execute(self, query, params=()):
+        if self.is_pg:
+            # Convert ? to %s for PostgreSQL
+            query = query.replace('?', '%s')
+            cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute(query, params)
+            return cur
+        else:
+            return self.conn.execute(query, params)
+    def cursor(self):
+        if self.is_pg:
+            return CursorWrapper(self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor), True)
+        else:
+            return CursorWrapper(self.conn.cursor(), False)
+    def commit(self):
+        self.conn.commit()
+    def close(self):
+        self.conn.close()
+
+class CursorWrapper:
+    def __init__(self, cursor, is_pg):
+        self.cursor = cursor
+        self.is_pg = is_pg
+    def execute(self, query, params=()):
+        if self.is_pg:
+            query = query.replace('?', '%s')
+        self.cursor.execute(query, params)
+        return self
+    @property
+    def lastrowid(self):
+        if self.is_pg:
+            # This is a bit tricky for global usage, but for our specific inserts:
+            # We will use RETURNING id and fetch it.
+            # However, to avoid changing too much logic, we'll return the result of the previous fetch if available.
+            return self.cursor.fetchone()['id']
+        return self.cursor.lastrowid
+    def fetchone(self):
+        return self.cursor.fetchone()
+    def fetchall(self):
+        return self.cursor.fetchall()
+    def close(self):
+        self.cursor.close()
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row
-    return conn
+    if DATABASE_URL:
+        # PostgreSQL (Render)
+        # Fix legacy postgres:// URL if necessary
+        url = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        conn = psycopg2.connect(url)
+        return DBWrapper(conn, True)
+    else:
+        # Local SQLite
+        conn = sqlite3.connect(DB_NAME)
+        conn.row_factory = sqlite3.Row
+        return DBWrapper(conn, False)
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -150,6 +208,31 @@ def inject_notifications():
         return dict(notifications=notifs)
     except Exception:
         return dict(notifications=[])
+
+def init_postgreSQL():
+    if not DATABASE_URL:
+        return
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    # Users
+    cursor.execute('CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN (\'admin\', \'student\')))')
+    # Files
+    cursor.execute('CREATE TABLE IF NOT EXISTS files (id SERIAL PRIMARY KEY, original_filename TEXT NOT NULL, stored_filename TEXT NOT NULL, uploader_username TEXT NOT NULL, subject TEXT NOT NULL, semester TEXT NOT NULL, category TEXT DEFAULT \'Study Material\', dept TEXT DEFAULT \'General\', description TEXT, upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, file_type TEXT NOT NULL, file_size BIGINT NOT NULL)')
+    # Comments
+    cursor.execute('CREATE TABLE IF NOT EXISTS comments (id SERIAL PRIMARY KEY, file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, username TEXT, guest_dept TEXT, comment TEXT NOT NULL, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
+    # Notifications
+    cursor.execute('CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, message TEXT NOT NULL, link TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
+    
+    # Check if admin exists
+    admin = conn.execute('SELECT * FROM users WHERE username = ?', ('admin',)).fetchone()
+    if not admin:
+        from werkzeug.security import generate_password_hash
+        pwd_hash = generate_password_hash("admin1234")
+        conn.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', ('admin', pwd_hash, 'admin'))
+    
+    conn.commit()
+    conn.close()
+    print("[OK] PostgreSQL Schema Verified")
 
 # --- Routes ---
 
@@ -239,8 +322,10 @@ def upload_file():
             conn = get_db_connection()
             try:
                 cursor = conn.cursor()
-                cursor.execute('INSERT INTO files (original_filename, stored_filename, uploader_username, subject, semester, category, dept, file_type, file_size, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                         (original_filename, stored_filename, session['username'], subject, semester, category, dept, file_ext, 0, description))
+                sql = 'INSERT INTO files (original_filename, stored_filename, uploader_username, subject, semester, category, dept, file_type, file_size, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                if DATABASE_URL:
+                    sql += " RETURNING id"
+                cursor.execute(sql, (original_filename, stored_filename, session['username'], subject, semester, category, dept, file_ext, 0, description))
                 file_id = cursor.lastrowid
                 
                 if session.get('role') == 'admin':
@@ -326,8 +411,10 @@ def upload_file():
             conn = get_db_connection()
             try:
                 cursor = conn.cursor()
-                cursor.execute('INSERT INTO files (original_filename, stored_filename, uploader_username, subject, semester, category, dept, file_type, file_size, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                         (original_filename, random_name, session['username'], subject, semester, category, dept, file_ext, file_length, description))
+                sql = 'INSERT INTO files (original_filename, stored_filename, uploader_username, subject, semester, category, dept, file_type, file_size, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                if DATABASE_URL:
+                    sql += " RETURNING id"
+                cursor.execute(sql, (original_filename, random_name, session['username'], subject, semester, category, dept, file_ext, file_length, description))
                 file_id = cursor.lastrowid
                 
                 # Create Notification
@@ -434,6 +521,12 @@ def delete_comment(comment_id):
 # ... (rest of file) ...
 
 if __name__ == '__main__':
+    if DATABASE_URL:
+        try:
+            init_postgreSQL()
+        except Exception as e:
+            print(f"[ERROR] DB Init Failed: {e}")
+            
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
     # SECURITY: Debug disabled, 0.0.0.0 for mobile access
