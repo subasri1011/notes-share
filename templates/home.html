@@ -77,8 +77,8 @@
 
 <div class="grid">
     {% for file in files %}
-    <div class="card" onclick="window.location.href='{{ url_for('view_file_page', file_id=file.id) }}'"
-        style="cursor: pointer;">
+    <div class="card" data-url="{{ url_for('view_file_page', file_id=file.id) }}"
+        onclick="window.location.href=this.getAttribute('data-url');" style="cursor: pointer;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
             <div class="file-icon-box">
                 <i class="fas {{ file.original_filename|file_icon }}" style="color: var(--primary);"></i>
