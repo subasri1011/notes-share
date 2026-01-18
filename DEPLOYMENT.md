@@ -1,57 +1,40 @@
-# 🚀 Deployment Guide (Render + Cloudinary)
+# 🚀 Deployment Guide (Professional Version)
 
-This guide takes your code from your laptop to the world for **FREE**.
+This guide helps you deploy the **College Notes Platform** with a **Permanent Database (Postgres)** and **Permanent Storage (Cloudinary)**.
 
-## Prerequisite: Database Note
-*   **Locally**, we use `users.db` (SQLite).
-*   **On Render**, SQLite files **get deleted** when the server restarts.
-    *   *Option A (Quick/Temporary)*: Use SQLite, but expect user accounts and comments to reset daily.
-    *   *Option B (Real Prod)*: Connect to a **PostgreSQL** database (Render offers a free tier).
-    *   *For now*: We will deploy assuming Option A to get you online fast.
+## Step 1: Push to GitHub
+I have already connected your project to:
+`https://github.com/suasri2006/notes-share.git`
+The latest code with Postgres support is already there.
+
+## Step 2: Create a Database on Render
+1.  Go to [Render.com](https://render.com).
+2.  Click **"New"** (blue button) -> **"PostgreSQL"**.
+3.  Name it `notes-db`.
+4.  Click **"Create Database"**.
+5.  **Stop!** On the database page, find the **"Internal Database URL"**. It looks like:
+    `postgres://user:password@hostname:5432/dbname`
+    (You will need this in Step 3).
+
+## Step 3: Create the Web Service
+1.  Go to your Render Dashboard.
+2.  Click **"New"** -> **"Web Service"**.
+3.  Connect your `notes-share` repository.
+4.  **Settings**:
+    *   **Start Command**: `gunicorn app:app`
+5.  **Environment Variables**:
+    Add the following:
+    *   `DATABASE_URL`: (Paste the **Internal Database URL** from Step 2 here).
+    *   `CLOUDINARY_CLOUD_NAME`: `dgwfdlwcw`
+    *   `CLOUDINARY_API_KEY`: `498172598213555`
+    *   `CLOUDINARY_API_SECRET`: `cWEMdSyhMtbD2krGk89oEiBRTNQ`
+    *   `SECRET_KEY`: `any-random-string123`
+    *   `PYTHON_VERSION`: `3.10`
+
+## Step 4: Done!
+When Render finishes building, your site will be live.
+The app will automatically detect PostgreSQL and setup all tables (`users`, `files`, `comments`) on the first run.
 
 ---
-
-## Step 1: Prepare Code (Running Now)
-I have already created the necessary files for you:
-1.  `Procfile` (Tells Render how to run the app).
-2.  `requirements.txt` (List of required libraries like Flask, Cloudinary, Gunicorn).
-
-## Step 2: Push to GitHub
-You need to put your code on GitHub.
-1.  Create a **New Repository** on GitHub (e.g., `noteshare-app`).
-2.  Run these commands in your terminal:
-    ```bash
-    git init
-    git add .
-    git commit -m "Initial commit"
-    git branch -M main
-    git remote add origin https://github.com/YOUR_USERNAME/noteshare-app.git
-    git push -u origin main
-    ```
-
-## Step 3: Deploy on Render.com
-1.  Go to [Render.com](https://render.com) and sign up (GitHub login recommended).
-2.  Click **"New + "** -> **"Web Service"**.
-3.  Connect your GitHub repository.
-4.  **Settings**:
-    *   **Name**: `noteshare-platform` (or similar)
-    *   **Region**: Singapore (closest) or default.
-    *   **Branch**: `main`
-    *   **Runtime**: `Python 3`
-    *   **Build Command**: `pip install -r requirements.txt`
-    *   **Start Command**: `gunicorn app:app`
-5.  **Environment Variables** (Crucial!):
-    Scroll down to "Environment Variables" and add:
-    *   `CLOUDINARY_CLOUD_NAME`: `dldydrqdb`
-    *   `CLOUDINARY_API_KEY`: `756177661263517`
-    *   `CLOUDINARY_API_SECRET`: `PcA6CTww57imc8HAWi2tsN033eo`
-    *   `SECRET_KEY`: `some_random_secret_string`
-
-6.  Click **"Create Web Service"**.
-
-## Step 4: Go Live! 🌐
-Render will build your app (takes ~2 minutes). Once done, it will give you a URL like:
-`https://noteshare-platform.onrender.com`
-
-**Share this link with your college!**
-All uploaded notes will live safely in Cloudinary, so they will persist forever.
+**Note about the ID you provided (`dpg-d5mgmrkoud1c739ce520-a`):**
+That is your **Database ID** on Render. You don't need to put that in the code. Instead, just use the **Internal Database URL** as shown in Step 2 above. Render handles the connection using that URL!
