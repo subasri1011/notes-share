@@ -106,13 +106,13 @@ class DBWrapper:
         self.is_pg = is_pg
     def execute(self, query, params=()):
         if self.is_pg:
-            # Convert ? to %s for PostgreSQL
             query = query.replace('?', '%s')
             cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             cur.execute(query, params)
-            return cur
+            return CursorWrapper(cur, True)
         else:
-            return self.conn.execute(query, params)
+            cur = self.conn.execute(query, params)
+            return CursorWrapper(cur, False)
     def cursor(self):
         if self.is_pg:
             return CursorWrapper(self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor), True)
