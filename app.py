@@ -143,17 +143,14 @@ class CursorWrapper:
                 return None
         return self.cursor.lastrowid
     def fetchone(self):
-        try:
-            return self.cursor.fetchone()
-        finally:
-            if self.is_pg: self.cursor.close()
+        return self.cursor.fetchone()
     def fetchall(self):
-        try:
-            return self.cursor.fetchall()
-        finally:
-            if self.is_pg: self.cursor.close()
+        return self.cursor.fetchall()
     def close(self):
-        self.cursor.close()
+        try:
+            self.cursor.close()
+        except:
+            pass
 
 def get_db_connection():
     if DATABASE_URL:
@@ -227,26 +224,33 @@ def inject_notifications():
 def init_postgreSQL():
     if not DATABASE_URL:
         return
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    # Users
-    cursor.execute('CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN (\'admin\', \'student\')))')
-    # Files
-    cursor.execute('CREATE TABLE IF NOT EXISTS files (id SERIAL PRIMARY KEY, original_filename TEXT NOT NULL, stored_filename TEXT NOT NULL, uploader_username TEXT NOT NULL, subject TEXT NOT NULL, semester TEXT NOT NULL, category TEXT DEFAULT \'Study Material\', dept TEXT DEFAULT \'General\', description TEXT, upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, file_type TEXT NOT NULL, file_size BIGINT NOT NULL)')
-    # Comments
-    cursor.execute('CREATE TABLE IF NOT EXISTS comments (id SERIAL PRIMARY KEY, file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, username TEXT, guest_dept TEXT, comment TEXT NOT NULL, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
-    # Notifications
-    cursor.execute('CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, message TEXT NOT NULL, link TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
-    
-    # Check if admin exists
-    admin = conn.execute('SELECT * FROM users WHERE username = ?', ('admin',)).fetchone()
-    if not admin:
-        from werkzeug.security import generate_password_hash
-        pwd_hash = generate_password_hash("admin1234")
-        conn.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', ('admin', pwd_hash, 'admin'))
-    
-    conn.commit()
-    conn.close()
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        # Users
+        cursor.execute('CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN (\'admin\', \'student\')))')
+        # Files
+        cursor.execute('CREATE TABLE IF NOT EXISTS files (id SERIAL PRIMARY KEY, original_filename TEXT NOT NULL, stored_filename TEXT NOT NULL, uploader_username TEXT NOT NULL, subject TEXT NOT NULL, semester TEXT NOT NULL, category TEXT DEFAULT \'Study Material\', dept TEXT DEFAULT \'General\', description TEXT, upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, file_type TEXT NOT NULL, file_size BIGINT NOT NULL)')
+        # Comments
+        cursor.execute('CREATE TABLE IF NOT EXISTS comments (id SERIAL PRIMARY KEY, file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, username TEXT, guest_dept TEXT, comment TEXT NOT NULL, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
+        # Notifications
+        cursor.execute('CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, message TEXT NOT NULL, link TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
+        
+        # Check if admin exists
+        admin = conn.execute('SELECT * FROM users WHERE username = ?', ('admin',)).fetchone()
+        if not admin:
+            from werkzeug.security import generate_password_hash
+            pwd_hash = generate_password_hash("admin1234")
+            conn.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', ('admin', pwd_hash, 'admin'))
+        
+        conn.commit()
+    except Exception as e:
+        print(f"DEBUG: init_postgreSQL Error: {e}")
+    finally:
+        if conn:
+            try: conn.close()
+            except: pass
     print("[OK] PostgreSQL Schema Verified")
 
 @app.route('/health')
