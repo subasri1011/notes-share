@@ -318,7 +318,9 @@
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                     <strong style="color: var(--primary);">{{ comment.username }}</strong>
                     <div style="display: flex; gap: 1rem; align-items: center;">
-                        <span style="color: var(--text-muted); font-size: 0.85rem;">{{ comment.timestamp }}</span>
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">{{
+                            comment.timestamp.strftime('%Y-%m-%d %H:%M') if comment.timestamp is not string else
+                            comment.timestamp }}</span>
                         {% if session.get('role') == 'admin' %}
                         <form action="{{ url_for('delete_comment', comment_id=comment.id) }}" method="post"
                             style="display: inline;">

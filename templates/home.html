@@ -106,7 +106,8 @@
         <div
             style="margin-top: auto; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--glass-border); padding-top: 1rem;">
             <span><i class="fas fa-book-open" style="margin-right: 0.25rem;"></i> {{ file.subject }}</span>
-            <span>{{ file.upload_date[:10] }}</span>
+            <span>{{ file.upload_date.strftime('%Y-%m-%d') if file.upload_date is not string else file.upload_date[:10]
+                }}</span>
         </div>
     </div>
     {% else %}
