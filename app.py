@@ -143,9 +143,15 @@ class CursorWrapper:
                 return None
         return self.cursor.lastrowid
     def fetchone(self):
-        return self.cursor.fetchone()
+        try:
+            return self.cursor.fetchone()
+        finally:
+            if self.is_pg: self.cursor.close()
     def fetchall(self):
-        return self.cursor.fetchall()
+        try:
+            return self.cursor.fetchall()
+        finally:
+            if self.is_pg: self.cursor.close()
     def close(self):
         self.cursor.close()
 
@@ -207,7 +213,14 @@ def inject_notifications():
         # Fetch last 5 notifications
         notifs = conn.execute('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 5').fetchall()
         conn.close()
-        return dict(notifications=notifs)
+        # Ensure created_at is a string for slicing in template fallback
+        processed_notifs = []
+        for n in notifs:
+            n_dict = dict(n)
+            if hasattr(n_dict.get('created_at'), 'strftime'):
+                n_dict['created_at'] = n_dict['created_at'].strftime('%Y-%m-%d %H:%M')
+            processed_notifs.append(n_dict)
+        return dict(notifications=processed_notifs)
     except Exception:
         return dict(notifications=[])
 
@@ -235,6 +248,16 @@ def init_postgreSQL():
     conn.commit()
     conn.close()
     print("[OK] PostgreSQL Schema Verified")
+
+@app.route('/health')
+def health():
+    try:
+        conn = get_db_connection()
+        conn.execute('SELECT 1').fetchone()
+        conn.close()
+        return {"status": "ok", "database": "connected", "storage": get_storage_type()}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
 
 # Ensure upload folder exists for local fallback
 if not os.path.exists(app.config['UPLOAD_FOLDER']):

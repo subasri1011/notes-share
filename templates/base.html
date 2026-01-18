@@ -62,7 +62,7 @@
                             <a href="{{ n.link }}"
                                 style="display: block; padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; text-decoration: none; color: var(--text-muted); transition: background 0.2s;">
                                 <div style="color: var(--text-main); margin-bottom: 0.25rem;">{{ n.message }}</div>
-                                <div style="font-size: 0.75rem; opacity: 0.7;">{{ n.created_at[:10] }}</div>
+                                <div style="font-size: 0.75rem; opacity: 0.7;">{{ n.created_at }}</div>
                             </a>
                             {% endfor %}
                             {% else %}
