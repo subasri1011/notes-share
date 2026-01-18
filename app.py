@@ -234,6 +234,13 @@ def init_postgreSQL():
     conn.close()
     print("[OK] PostgreSQL Schema Verified")
 
+# Auto-Init DB if on PostgreSQL
+if DATABASE_URL:
+    try:
+        init_postgreSQL()
+    except Exception as e:
+        print(f"[ERROR] Auto-Init Failed: {e}")
+
 # --- Routes ---
 
 @app.route('/')
@@ -521,12 +528,6 @@ def delete_comment(comment_id):
 # ... (rest of file) ...
 
 if __name__ == '__main__':
-    if DATABASE_URL:
-        try:
-            init_postgreSQL()
-        except Exception as e:
-            print(f"[ERROR] DB Init Failed: {e}")
-            
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
     # SECURITY: Debug disabled, 0.0.0.0 for mobile access
