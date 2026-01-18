@@ -135,10 +135,12 @@ class CursorWrapper:
     @property
     def lastrowid(self):
         if self.is_pg:
-            # This is a bit tricky for global usage, but for our specific inserts:
-            # We will use RETURNING id and fetch it.
-            # However, to avoid changing too much logic, we'll return the result of the previous fetch if available.
-            return self.cursor.fetchone()['id']
+            try:
+                row = self.cursor.fetchone()
+                return row['id'] if row else None
+            except Exception as e:
+                print(f"DEBUG: Error fetching lastrowid: {e}")
+                return None
         return self.cursor.lastrowid
     def fetchone(self):
         return self.cursor.fetchone()
@@ -233,6 +235,11 @@ def init_postgreSQL():
     conn.commit()
     conn.close()
     print("[OK] PostgreSQL Schema Verified")
+
+# Ensure upload folder exists for local fallback
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
+    print(f"[OK] Created upload folder: {app.config['UPLOAD_FOLDER']}")
 
 # Auto-Init DB if on PostgreSQL
 if DATABASE_URL:
@@ -424,15 +431,16 @@ def upload_file():
                 cursor.execute(sql, (original_filename, random_name, session['username'], subject, semester, category, dept, file_ext, file_length, description))
                 file_id = cursor.lastrowid
                 
-                # Create Notification
-                if session.get('role') == 'admin':
+                if session.get('role') == 'admin' and file_id:
                     msg = f"New {subject} note posted by Admin: {original_filename}"
                     link = url_for('view_file_page', file_id=file_id)
                     conn.execute('INSERT INTO notifications (message, link) VALUES (?, ?)', (msg, link))
                 
                 conn.commit()
+                print(f"DEBUG: File record committed to DB. ID: {file_id}")
             except Exception as e:
                 print(f"DEBUG: Error DB insert: {e}")
+                raise e # Re-raise to be caught by outer try
             finally:
                 conn.close()
             
