@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="auth-container" style="max-width: 600px;">
+    <div class="card">
+        <h2 style="margin-bottom: 2rem;">Upload Material</h2>
+
+        <form method="post" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <div class="form-group">
+                <label class="form-label">File</label>
+                <div style="border: 2px dashed var(--border-color); padding: 2rem; text-align: center; border-radius: 0.5rem; cursor: pointer;"
+                    onclick="document.getElementById('file').click()">
+                    <i class="fas fa-cloud-upload-alt fa-2x" style="color: var(--primary); margin-bottom: 1rem;"></i>
+                    <p>Click to select or drag file here</p>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">PDF, DOC, PPT (Max
+                        30MB)</p>
+                </div>
+                <!-- Hidden input for file selection -->
+                <input type="file" name="file" id="file" class="form-control" style="display: none;"
+                    onchange="checkFileSize(this)">
+                <p id="filename-display" class="text-center mt-4" style="font-weight: 500;"></p>
+
+                <div id="link-section" style="display: none; margin-top: 1rem; animation: fadeIn 0.3s;">
+                    <div class="alert alert-warning"
+                        style="background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; color: #ffc107; font-size: 0.9rem;">
+                        <i class="fas fa-exclamation-triangle"></i> File size exceeds 30MB. You can upload in your
+                        google drive share link here.
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Google Drive Share Link</label>
+                        <input type="url" name="drive_link" id="drive_link" class="form-control"
+                            placeholder="https://drive.google.com/...">
+                    </div>
+                </div>
+
+                <script>
+                    function checkFileSize(input) {
+                        const fileDisplay = document.getElementById('filename-display');
+                        const linkSection = document.getElementById('link-section');
+                        const driveInput = document.getElementById('drive_link');
+
+                        if (input.files && input.files[0]) {
+                            const fileSize = input.files[0].size / 1024 / 1024; // in MB
+
+                            if (fileSize > 30) {
+                                // File too big
+                                input.value = ''; // Clear input
+                                fileDisplay.innerText = "File too large (Max 30MB). Please use the link option below.";
+                                fileDisplay.style.color = "#ef4444";
+
+                                linkSection.style.display = 'block';
+                                input.required = false;
+                                driveInput.required = true;
+                            } else {
+                                // File OK
+                                fileDisplay.innerText = input.files[0].name;
+                                fileDisplay.style.color = "var(--text-main)";
+
+                                linkSection.style.display = 'none';
+                                input.required = true;
+                                driveInput.required = false;
+                                driveInput.value = ''; // Clear link if they go back to file
+                            }
+                        }
+                    }
+                </script>
+            </div>
+
+            <div class="grid" style="gap: 1rem; grid-template-columns: 1fr 1fr;">
+                <div class="form-group">
+                    <label class="form-label">Subject</label>
+                    <input type="text" name="subject" class="form-control" placeholder="e.g. Mathematics" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Department</label>
+                    <select name="dept" class="form-control" required>
+                        <option value="CSE">CSE</option>
+                        <option value="ECE">ECE</option>
+                        <option value="EEE">EEE</option>
+                        <option value="MECH">MECH</option>
+                        <option value="CIVIL">CIVIL</option>
+                        <option value="IT">IT</option>
+                        <option value="AI&DS">AI&DS</option>
+                        <option value="Cyber Security">Cyber Security</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Semester</label>
+                    <select name="semester" class="form-control" required>
+                        <option value="1">Semester 1</option>
+                        <option value="2">Semester 2</option>
+                        <option value="3">Semester 3</option>
+                        <option value="4">Semester 4</option>
+                        <option value="5">Semester 5</option>
+                        <option value="6">Semester 6</option>
+                        <option value="7">Semester 7</option>
+                        <option value="8">Semester 8</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select name="category" class="form-control" required>
+                        <option value="Lecture Notes">Lecture Notes</option>
+                        <option value="Question Paper">Question Paper</option>
+                        <option value="Assignment">Assignment</option>
+                        <option value="Lab Record">Lab Record</option>
+                        <option value="Placement Material">Placement Material</option>
+                        <option value="Syllabus">Syllabus</option>
+                        <option value="Project Report">Project Report</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">Description (Optional)</label>
+                <textarea name="description" class="form-control" rows="3"
+                    placeholder="Add a brief description about the notes..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                <i class="fas fa-upload"></i> Upload File
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

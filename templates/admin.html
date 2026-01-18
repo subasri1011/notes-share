@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 style="margin-bottom: 2rem;">Admin Dashboard</h1>
+
+<div class="grid" style="grid-template-columns: 1fr;">
+    <div class="card">
+        <h3><i class="fas fa-users"></i> Users Management</h3>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+                <thead>
+                    <tr style="text-align: left; border-bottom: 1px solid var(--border-color);">
+                        <th style="padding: 1rem;">ID</th>
+                        <th style="padding: 1rem;">Username</th>
+                        <th style="padding: 1rem;">Role</th>
+                        <th style="padding: 1rem;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 1rem;">{{ user.id }}</td>
+                        <td style="padding: 1rem;">{{ user.username }}</td>
+                        <td style="padding: 1rem;">
+                            <span class="tag"
+                                style="background: {{ 'rgba(99, 102, 241, 0.2)' if user.role == 'admin' else 'rgba(16, 185, 129, 0.2)' }}">
+                                {{ user.role }}
+                            </span>
+                        </td>
+                        <td style="padding: 1rem;">
+                            <button class="btn btn-delete" disabled style="opacity: 0.5;">Manage</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3><i class="fas fa-file-alt"></i> All Files</h3>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+                <thead>
+                    <tr style="text-align: left; border-bottom: 1px solid var(--border-color);">
+                        <th style="padding: 1rem;">File</th>
+                        <th style="padding: 1rem;">Uploader</th>
+                        <th style="padding: 1rem;">Subject</th>
+                        <th style="padding: 1rem;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 1rem;">
+                            <a href="{{ url_for('download_file', file_id=file.id) }}" style="color: var(--primary);">
+                                {{ file.original_filename }}
+                            </a>
+                        </td>
+                        <td style="padding: 1rem;">{{ file.uploader_username }}</td>
+                        <td style="padding: 1rem;">{{ file.subject }}</td>
+                        <td style="padding: 1rem;">
+                            <form action="{{ url_for('delete_file', file_id=file.id) }}" method="post">
+                                <button type="submit" class="btn btn-delete"
+                                    onclick="return confirm('Delete this file strictly?')">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="hero">
+    <h1>Share Knowledge, <br>Ace Your Exams.</h1>
+    <p style="color: var(--text-muted); font-size: 1.125rem; margin-bottom: 2rem;">
+        Securely access and share college notes, placement papers, and study materials.
+    </p>
+
+    <form action="{{ url_for('home') }}" method="get" style="max-width: 800px; margin: 0 auto 3rem auto;">
+        <div
+            style="display: flex; gap: 0.75rem; margin-bottom: 1rem; background: var(--card-bg); padding: 0.5rem; border-radius: 0.75rem; border: 1px solid var(--border-color); backdrop-filter: blur(12px);">
+            <i class="fas fa-search" style="align-self: center; margin-left: 1rem; color: var(--text-muted);"></i>
+            <input type="text" name="q" class="form-control" placeholder="Search notes, papers, subjects..."
+                value="{{ request.args.get('q', '') }}"
+                style="border: none; background: transparent; flex: 1; padding-left: 0.5rem; box-shadow: none;">
+
+            <button type="button" class="btn" title="Filters"
+                style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-muted); padding: 0.5rem 0.75rem;"
+                onclick="const p = document.getElementById('filter-panel'); p.style.display = p.style.display === 'none' ? 'grid' : 'none'">
+                <i class="fas fa-sliders-h"></i>
+            </button>
+
+            <button type="submit" class="btn btn-primary" style="border-radius: 0.5rem;">
+                Search
+            </button>
+        </div>
+
+        <div id="filter-panel"
+            style="display: none; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); background: var(--card-bg); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid var(--border-color); margin-top: 0.5rem; animation: slideDown 0.2s ease-out;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.85rem; color: var(--text-muted);">Subject</label>
+                <select name="subject" class="form-control">
+                    <option value="">All Subjects</option>
+                    <option value="Math" {% if request.args.get('subject')=='Math' %}selected{% endif %}>Math</option>
+                    <option value="CS" {% if request.args.get('subject')=='CS' %}selected{% endif %}>CS</option>
+                    <option value="Physics" {% if request.args.get('subject')=='Physics' %}selected{% endif %}>Physics
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.85rem; color: var(--text-muted);">Department</label>
+                <select name="dept" class="form-control">
+                    <option value="">All Departments</option>
+                    <option value="CSE" {% if request.args.get('dept')=='CSE' %}selected{% endif %}>CSE</option>
+                    <option value="ECE" {% if request.args.get('dept')=='ECE' %}selected{% endif %}>ECE</option>
+                    <option value="IT" {% if request.args.get('dept')=='IT' %}selected{% endif %}>IT</option>
+                    <option value="Cyber Security" {% if request.args.get('dept')=='Cyber Security' %}selected{% endif
+                        %}>Cyber Security</option>
+                    <option value="Civil" {% if request.args.get('dept')=='Civil' %}selected{% endif %}>Civil</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.85rem; color: var(--text-muted);">Category</label>
+                <select name="category" class="form-control">
+                    <option value="">All Categories</option>
+                    <option value="Lecture Notes" {% if request.args.get('category')=='Lecture Notes' %}selected{% endif
+                        %}>Notes</option>
+                    <option value="Question Paper" {% if request.args.get('category')=='Question Paper' %}selected{%
+                        endif %}>Papers</option>
+                    <option value="Placement Material" {% if request.args.get('category')=='Placement Material'
+                        %}selected{% endif %}>Placement</option>
+                    <option value="Assignment" {% if request.args.get('category')=='Assignment' %}selected{% endif %}>
+                        Assignment</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Auto-open if filters active -->
+        {% if request.args.get('subject') or request.args.get('dept') or request.args.get('category') %}
+        <script>document.getElementById('filter-panel').style.display = 'grid';</script>
+        {% endif %}
+    </form>
+</div>
+
+<div class="grid">
+    {% for file in files %}
+    <div class="card" onclick="window.location.href='{{ url_for('view_file_page', file_id=file.id) }}'"
+        style="cursor: pointer;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+            <div class="file-icon-box">
+                <i class="fas {{ file.original_filename|file_icon }}" style="color: var(--primary);"></i>
+            </div>
+
+            {% if session.get('user_id') == file.uploader_id or session.get('role') == 'admin' or
+            session.get('username') == file.uploader_username %}
+            <form action="{{ url_for('delete_file', file_id=file.id) }}" method="post" style="z-index: 10;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit" class="btn btn-delete" style="padding: 0.4rem;"
+                    onclick="event.stopPropagation(); return confirm('Are you sure?')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </form>
+            {% endif %}
+        </div>
+
+        <h3 title="{{ file.original_filename }}">{{ file.original_filename }}</h3>
+
+        <div class="card-meta">
+            <span class="tag dept">{{ file.dept }}</span>
+            <span class="tag cat">{{ file.category }}</span>
+        </div>
+
+        <div
+            style="margin-top: auto; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+            <span><i class="fas fa-book-open" style="margin-right: 0.25rem;"></i> {{ file.subject }}</span>
+            <span>{{ file.upload_date[:10] }}</span>
+        </div>
+    </div>
+    {% else %}
+    <div style="grid-column: 1 / -1; text-align: center; padding: 6rem 1rem; color: var(--text-muted);">
+        <div
+            style="background: var(--glass-bg); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto; border: 1px solid var(--glass-border);">
+            <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: var(--primary);"></i>
+        </div>
+        <h3 style="color: white; margin-bottom: 0.5rem;">No files found</h3>
+        <p>Be the first student to share knowledge!</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
