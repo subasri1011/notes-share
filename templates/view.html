@@ -25,250 +25,226 @@
             {% endif %}
         </div>
 
-        <div style="flex: 1; position: relative; display: flex; flex-direction: column;">
-            {% if file.file_type == 'pdf' %}
-            <div id="pdf-container"
-                style="flex: 1; overflow-y: auto; background: #525659; padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                <div id="pdf-loading" style="color: white; margin-top: 2rem;">Loading PDF...</div>
+        <div style="flex: 1; position: relative; display: flex; flex-direction: column; background: #2d2d2d;">
+            {% if file.file_type in ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xlsx', 'xls', 'csv'] %}
+            <!-- Universal Document Previewer -->
+            <div id="preview-toolbar"
+                style="padding: 0.5rem 1rem; background: #1a1a1a; display: flex; gap: 1rem; align-items: center; border-bottom: 1px solid #444;">
+                <span style="color: #ccc; font-size: 0.85rem;"><i class="fas fa-eye"></i> Document Preview</span>
+                <div style="flex: 1;"></div>
+                <button onclick="togglePreviewMode()" id="toggle-preview-btn" class="btn"
+                    style="padding: 3px 10px; font-size: 0.75rem; background: #444; color: white; border: none;">
+                    <i class="fas fa-sync"></i> Try Alternative Viewer
+                </button>
             </div>
 
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+            <div id="preview-main-container" style="flex: 1; display: flex; flex-direction: column;">
+                <!-- Primary Viewer: Direct Render -->
+                <div id="direct-viewer" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                    {% if file.file_type == 'pdf' %}
+                    <div id="pdf-container"
+                        style="flex: 1; overflow-y: auto; background: #525659; padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                        <div id="pdf-loading" style="color: white; margin-top: 2rem;">
+                            <i class="fas fa-circle-notch fa-spin"></i> Loading PDF...
+                        </div>
+                    </div>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+                    <script>
+                        window.pdfjsLib = window['pdfjs-dist/build/pdf'];
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+                        function loadPdfDirectly() {
+                            const container = document.getElementById('pdf-container');
+                            const loading = document.getElementById('pdf-loading');
+                            const jsonUrl = "{{ url_for('get_file_base64', file_id=file.id) }}";
+
+                            fetch(jsonUrl)
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.error) throw new Error(data.error);
+                                    const raw = atob(data.data);
+                                    const uint8Array = new Uint8Array(raw.length);
+                                    for (let i = 0; i < raw.length; i++) uint8Array[i] = raw.charCodeAt(i);
+                                    return pdfjsLib.getDocument({ data: uint8Array }).promise;
+                                })
+                                .then(pdf => {
+                                    loading.style.display = 'none';
+                                    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                                        pdf.getPage(pageNum).then(page => {
+                                            const scale = 1.5;
+                                            const viewport = page.getViewport({ scale: scale });
+                                            const canvas = document.createElement('canvas');
+                                            canvas.height = viewport.height;
+                                            canvas.width = viewport.width;
+                                            canvas.style.marginBottom = "20px";
+                                            canvas.style.boxShadow = "0 4px 10px rgba(0,0,0,0.5)";
+                                            container.appendChild(canvas);
+                                            page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport });
+                                        });
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error('PDF Render Error:', err);
+                                    loading.innerHTML = '<div style="text-align: center; color: #ff6b6b;"><i class="fas fa-exclamation-triangle"></i> Preview failed. Path: ' + err.message + '</div>';
+                                    // Auto switch to External Viewer if direct fails
+                                    setTimeout(togglePreviewMode, 1000);
+                                });
+                        }
+                        loadPdfDirectly();
+                    </script>
+
+                    {% elif file.file_type in ['doc', 'docx'] %}
+                    <div id="docx-viewer"
+                        style="flex: 1; overflow-y: auto; background: #525659; padding: 2rem; display: flex; justify-content: center;">
+                        <div id="docx-container"
+                            style="background: white; width: 100%; max-width: 900px; padding: 3rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: #000; min-height: 1000px; margin-bottom: 2rem;">
+                            <div style="text-align: center; color: #666;"><i class="fas fa-circle-notch fa-spin"></i>
+                                Loading document...</div>
+                        </div>
+                    </div>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+                    <script>
+                        function loadDocxDirectly() {
+                            fetch('{{ url_for("get_file_base64", file_id=file.id) }}')
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.error) throw new Error(data.error);
+                                    const raw = atob(data.data);
+                                    const uint8Array = new Uint8Array(raw.length);
+                                    for (let i = 0; i < raw.length; i++) uint8Array[i] = raw.charCodeAt(i);
+                                    return mammoth.convertToHtml({ arrayBuffer: uint8Array.buffer });
+                                })
+                                .then(result => {
+                                    const container = document.getElementById("docx-container");
+                                    container.innerHTML = result.value;
+                                    container.querySelectorAll('img').forEach(img => {
+                                        img.style.maxWidth = '100%'; img.style.height = 'auto';
+                                        img.style.display = 'block'; img.style.margin = '1.5rem auto';
+                                    });
+                                })
+                                .catch(err => {
+                                    console.error(err);
+                                    document.getElementById("docx-container").innerHTML = '<div style="text-align: center; padding: 3rem;"><i class="fas fa-exclamation-circle fa-2x" style="color: #ef4444;"></i><h3>Render Error</h3><p>Switching to alternative viewer...</p></div>';
+                                    setTimeout(togglePreviewMode, 1000);
+                                });
+                        }
+                        loadDocxDirectly();
+                    </script>
+
+                    {% elif file.file_type in ['xlsx', 'xls', 'csv'] %}
+                    <div id="spreadsheet-viewer"
+                        style="flex: 1; overflow: auto; background: #525659; padding: 2rem; display: flex; justify-content: center; align-items: flex-start;">
+                        <div id="spreadsheet-container"
+                            style="background: white; color: #333; padding: 1rem; border-radius: 4px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); width: fit-content; max-width: 100%;">
+                            <div style="text-align: center; padding: 2rem; color: #666;"><i
+                                    class="fas fa-circle-notch fa-spin"></i> Loading spreadsheet...</div>
+                        </div>
+                    </div>
+                    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+                    <script>
+                        function loadSheetDirectly() {
+                            fetch('{{ url_for("get_file_base64", file_id=file.id) }}')
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.error) throw new Error(data.error);
+                                    const raw = atob(data.data);
+                                    const uint8Array = new Uint8Array(raw.length);
+                                    for (let i = 0; i < raw.length; i++) uint8Array[i] = raw.charCodeAt(i);
+                                    const workbook = XLSX.read(uint8Array, { type: 'array' });
+                                    const htmlstr = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]], { id: "spreadsheet-table" });
+                                    document.getElementById('spreadsheet-container').innerHTML = htmlstr;
+                                    document.querySelectorAll('#spreadsheet-table td').forEach(td => { td.style.border = '1px solid #ddd'; td.style.padding = '8px'; });
+                                })
+                                .catch(err => {
+                                    console.error(err);
+                                    setTimeout(togglePreviewMode, 1000);
+                                });
+                        }
+                        loadSheetDirectly();
+                    </script>
+
+                    {% else %}
+                    <!-- Fallback for PPTX which has no local renderer -->
+                    <div
+                        style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; color: #888; padding: 2rem;">
+                        <i class="fas fa-file-powerpoint fa-4x" style="margin-bottom: 1.5rem; color: #d04423;"></i>
+                        <h3>Presentation Preview</h3>
+                        <p>Loading document in external viewer...</p>
+                    </div>
+                    <script>setTimeout(togglePreviewMode, 100);</script>
+                    {% endif %}
+                </div>
+
+                <!-- Secondary Viewer: External (Google Docs Viewer) -->
+                <div id="external-viewer" style="display: none; flex: 1;">
+                    <iframe id="google-viewer" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+                </div>
+            </div>
+
             <script>
-                // Use specific version that matches the worker to avoid version mismatch errors
-                var pdfjsLib = window['pdfjs-dist/build/pdf'];
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                var previewMode = 'direct';
+                function togglePreviewMode() {
+                    const direct = document.getElementById('direct-viewer');
+                    const external = document.getElementById('external-viewer');
+                    const iframe = document.getElementById('google-viewer');
+                    const btn = document.getElementById('toggle-preview-btn');
 
-                var url = "{{ url_for('file_content', file_id=file.id) }}";
-                var container = document.getElementById('pdf-container');
-                var loading = document.getElementById('pdf-loading');
+                    if (previewMode === 'direct') {
+                        previewMode = 'external';
+                        direct.style.display = 'none';
+                        external.style.display = 'block';
+                        btn.innerHTML = '<i class="fas fa-code"></i> Try Direct Render';
 
-                // 1. Fetch the data as a JSON Base64 string (Bypasses IDM completely)
-                // Using the specific JSON route
-                var jsonUrl = "{{ url_for('get_file_base64', file_id=file.id) }}";
-
-                fetch(jsonUrl)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.error) throw new Error(data.error);
-
-                        // Convert Base64 to Uint8Array
-                        var raw = atob(data.data);
-                        var uint8Array = new Uint8Array(raw.length);
-                        for (var i = 0; i < raw.length; i++) {
-                            uint8Array[i] = raw.charCodeAt(i);
-                        }
-
-                        // 2. Load the PDF from ArrayBuffer
-                        var loadingTask = pdfjsLib.getDocument({ data: uint8Array });
-                        return loadingTask.promise;
-                    })
-                    .then(function (pdf) {
-                        console.log('PDF loaded');
-                        loading.style.display = 'none';
-
-                        // Loop through all pages
-                        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-                            pdf.getPage(pageNum).then(function (page) {
-                                var scale = 1.5;
-                                var viewport = page.getViewport({ scale: scale });
-
-                                var canvas = document.createElement('canvas');
-                                var context = canvas.getContext('2d');
-                                canvas.height = viewport.height;
-                                canvas.width = viewport.width;
-                                canvas.style.marginBottom = "20px";
-                                canvas.style.boxShadow = "0 4px 10px rgba(0,0,0,0.5)";
-
-                                container.appendChild(canvas);
-
-                                var renderContext = {
-                                    canvasContext: context,
-                                    viewport: viewport
-                                };
-                                page.render(renderContext);
-                            });
-                        }
-                    })
-                    .catch(function (error) {
-                        // Loading error
-                        console.error('Error fetching/rendering PDF:', error);
-                        loading.innerHTML = '<div style="text-align: center; color: #ff6b6b; padding: 2rem;"><i class="fas fa-exclamation-triangle fa-2x"></i><br><h3 style="margin-top:1rem">Preview Failed</h3><p>Could not load PDF directly.</p><a href="{{ url_for("download_file", file_id=file.id) }}" class="btn btn-primary" style="margin-top:1rem">Download Instead</a></div>';
-                    });
+                        // Set Iframe Source (Proxy through Google Docs Viewer)
+                        // Encoding is essential
+                        const fileUrl = window.location.origin + "{{ url_for('file_content', file_id=file.id) }}";
+                        iframe.src = "https://docs.google.com/viewer?url=" + encodeURIComponent(fileUrl) + "&embedded=true";
+                    } else {
+                        previewMode = 'direct';
+                        direct.style.display = 'flex';
+                        external.style.display = 'none';
+                        btn.innerHTML = '<i class="fas fa-sync"></i> Try Alternative Viewer';
+                    }
+                }
             </script>
 
             {% elif file.file_type in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'] %}
             <div
-                style="display: flex; justify-content: center; align-items: center; flex: 1; padding: 2rem; background: var(--bg-dark);">
+                style="display: flex; justify-content: center; align-items: center; flex: 1; padding: 2rem; background: #1a1a1a;">
                 <img src="{{ url_for('file_content', file_id=file.id) }}"
-                    style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 0.5rem; box-shadow: var(--shadow-lg);">
-            </div>
-
-            {% elif file.file_type in ['doc', 'docx'] %}
-            <div id="docx-viewer"
-                style="flex: 1; overflow-y: auto; background: #525659; padding: 2rem; display: flex; justify-content: center;">
-                <div id="docx-container"
-                    style="background: white; width: 100%; max-width: 900px; padding: 3rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: #000; min-height: 1000px; margin-bottom: 2rem;">
-                    <div style="text-align: center; color: #666;">Loading document...</div>
-                </div>
-            </div>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-            <script>
-                fetch('{{ url_for("get_file_base64", file_id=file.id) }}')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.error) throw new Error(data.error);
-                        const raw = atob(data.data);
-                        const uint8Array = new Uint8Array(raw.length);
-                        for (let i = 0; i < raw.length; i++) uint8Array[i] = raw.charCodeAt(i);
-                        return mammoth.convertToHtml({ arrayBuffer: uint8Array.buffer });
-                    })
-                    .then(displayResult)
-                    .catch(handleError);
-
-                function displayResult(result) {
-                    const container = document.getElementById("docx-container");
-                    container.innerHTML = result.value;
-
-                    // Make images inside DOCX responsive and well-aligned
-                    container.querySelectorAll('img').forEach(img => {
-                        img.style.maxWidth = '100%';
-                        img.style.height = 'auto';
-                        img.style.display = 'block';
-                        img.style.margin = '1.5rem auto';
-                        img.style.borderRadius = '4px';
-                        img.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-                    });
-                }
-
-                function handleError(err) {
-                    console.log(err);
-                    document.getElementById("docx-container").innerHTML =
-                        '<div style="text-align: center; padding: 3rem;">' +
-                        '<i class="fas fa-exclamation-circle fa-3x" style="color: #ef4444; margin-bottom: 1rem;"></i>' +
-                        '<h3>Preview Error</h3>' +
-                        '<p>Could not render this document. Please download to view.</p>' +
-                        '</div>';
-                }
-            </script>
-
-            {% elif file.file_type in ['ppt', 'pptx'] %}
-            <div
-                style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; background: var(--bg-dark); color: var(--text-main); padding: 3rem;">
-                <div class="file-icon-box" style="width: 100px; height: 100px; font-size: 3rem; margin-bottom: 2rem;">
-                    <i class="fas fa-file-powerpoint" style="color: #d04423;"></i>
-                </div>
-                <h3 style="margin-bottom: 1rem;">PowerPoint Presentation</h3>
-                <p style="color: var(--text-muted); margin-bottom: 0.5rem; max-width: 500px; text-align: center;">
-                    {{ file.original_filename }}
-                </p>
-                <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.9rem;">
-                    PowerPoint files need to be downloaded to view all slides and animations.
-                </p>
-                <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-primary"
-                    style="font-size: 1.1rem; padding: 0.75rem 2rem;">
-                    <i class="fas fa-download"></i> Download to View
-                </a>
-            </div>
-
-            {% elif file.file_type in ['xlsx', 'xls', 'csv'] %}
-            <div id="spreadsheet-viewer"
-                style="flex: 1; overflow: auto; background: #525659; padding: 2rem; display: flex; justify-content: center; align-items: flex-start;">
-                <div id="spreadsheet-container"
-                    style="background: white; color: #333; padding: 1rem; border-radius: 4px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); width: fit-content; max-width: 100%;">
-                    <div id="spreadsheet-loading" style="text-align: center; padding: 2rem; color: #666;">Loading
-                        spreadsheet...</div>
-                </div>
-            </div>
-            <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-            <script>
-                fetch('{{ url_for("get_file_base64", file_id=file.id) }}')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.error) throw new Error(data.error);
-                        const raw = atob(data.data);
-                        const uint8Array = new Uint8Array(raw.length);
-                        for (let i = 0; i < raw.length; i++) uint8Array[i] = raw.charCodeAt(i);
-
-                        // Use uint8Array directly which is better supported
-                        const workbook = XLSX.read(uint8Array, { type: 'array' });
-                        const firstSheetName = workbook.SheetNames[0];
-                        const worksheet = workbook.Sheets[firstSheetName];
-
-                        // Handle empty sheets or errors
-                        if (!worksheet) throw new Error("Could not find any data in the first sheet.");
-
-                        const htmlstr = XLSX.utils.sheet_to_html(worksheet, { id: "spreadsheet-table", editable: false });
-
-                        document.getElementById('spreadsheet-container').innerHTML = htmlstr;
-
-                        // Add some basic styling to the generated table
-                        const table = document.getElementById('spreadsheet-table');
-                        if (table) {
-                            table.style.borderCollapse = 'collapse';
-                            table.style.width = '100%';
-                            table.style.minWidth = '600px';
-                            table.querySelectorAll('td').forEach(td => {
-                                td.style.border = '1px solid #ddd';
-                                td.style.padding = '8px';
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error loading spreadsheet:', error);
-                        document.getElementById('spreadsheet-container').innerHTML =
-                            '<div style="text-align: center; padding: 2rem; color: #ef4444;">' +
-                            '<i class="fas fa-exclamation-circle fa-2x"></i><br>Error loading spreadsheet. Please download to view.</div>';
-                    });
-            </script>
-
-            {% elif file.file_type == 'link' %}
-            <div
-                style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 400px; background: var(--bg-dark); color: var(--text-main); padding: 3rem;">
-                <div class="file-icon-box" style="width: 100px; height: 100px; font-size: 3rem; margin-bottom: 2rem;">
-                    <i class="fab fa-google-drive" style="color: #0F9D58;"></i>
-                </div>
-                <h3 style="margin-bottom: 1rem;">Shared Link</h3>
-                <p style="color: var(--text-muted); margin-bottom: 0.5rem; max-width: 500px; text-align: center;">
-                    This resource is hosted externally (Google Drive).
-                </p>
-                <a href="{{ file.stored_filename }}" target="_blank" class="btn btn-primary"
-                    style="font-size: 1.1rem; padding: 0.75rem 2rem;">
-                    <i class="fas fa-external-link-alt"></i> Open Link
-                </a>
+                    style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 0.5rem; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
             </div>
 
             {% elif file.file_type in ['txt', 'py', 'java', 'cpp', 'c', 'js', 'html', 'css'] %}
             <div id="text-container"
-                style="flex: 1; overflow: auto; background: #1e1e1e; color: #d4d4d4; padding: 2rem; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem; line-height: 1.5; white-space: pre;">
-                <div id="text-loading" style="text-align: center; color: #888;">Loading content...</div>
+                style="flex: 1; overflow: auto; background: #1e1e1e; color: #d4d4d4; padding: 2rem; font-family: 'Consolas', monospace; font-size: 0.9rem; white-space: pre;">
+                <div style="text-align: center; color: #888;"><i class="fas fa-circle-notch fa-spin"></i> Loading
+                    content...</div>
             </div>
             <script>
                 fetch('{{ url_for("get_file_base64", file_id=file.id) }}')
                     .then(response => response.json())
-                    .then(data => {
-                        if (data.error) throw new Error(data.error);
-                        const text = atob(data.data);
-                        const container = document.getElementById('text-container');
-                        container.textContent = text;
-                    })
-                    .catch(error => {
-                        console.error('Error loading text file:', error);
-                        document.getElementById('text-container').innerHTML =
-                            '<div style="text-align: center; padding: 2rem; color: #ef4444;">Error loading file content.</div>';
-                    });
+                    .then(data => { if (data.data) document.getElementById('text-container').textContent = atob(data.data); })
+                    .catch(e => console.error(e));
             </script>
+
+            {% elif file.file_type == 'link' %}
+            <div
+                style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 3rem; background: #1a1a1a; color: white;">
+                <i class="fab fa-google-drive fa-5x" style="color: #0F9D58; margin-bottom: 2rem;"></i>
+                <h3>Google Drive Link</h3>
+                <p style="color: #888; margin-bottom: 2rem;">Host: External</p>
+                <a href="{{ file.stored_filename }}" target="_blank" class="btn btn-primary"
+                    style="padding: 1rem 3rem;">Open in Drive <i class="fas fa-external-link-alt"></i></a>
+            </div>
 
             {% else %}
             <div
-                style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 400px; background: var(--bg-dark); color: var(--text-main);">
-                <div class="file-icon-box" style="width: 80px; height: 80px; font-size: 2.5rem; margin-bottom: 1.5rem;">
-                    <i class="fas {{ file.original_filename|file_icon }}"></i>
-                </div>
-                <h3>Preview not available for .{{ file.file_type }}</h3>
-                <p style="color: var(--text-muted); margin-bottom: 2rem;">Please download the file to view it.</p>
-                <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-primary">
-                    Download File
-                </a>
+                style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; background: #1a1a1a; color: white;">
+                <i class="fas fa-file-download fa-5x" style="color: #888; margin-bottom: 2rem;"></i>
+                <h3>No Preview for .{{ file.file_type }}</h3>
+                <p style="margin-bottom: 2rem;">Please download the file to view its content.</p>
+                <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-primary">Download File</a>
             </div>
             {% endif %}
         </div>

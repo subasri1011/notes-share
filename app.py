@@ -229,7 +229,7 @@ def init_postgreSQL():
         # Users
         cursor.execute('CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN (\'admin\', \'student\')))')
         # Files
-        cursor.execute('CREATE TABLE IF NOT EXISTS files (id SERIAL PRIMARY KEY, original_filename TEXT NOT NULL, stored_filename TEXT NOT NULL, uploader_username TEXT NOT NULL, subject TEXT NOT NULL, semester TEXT NOT NULL, category TEXT DEFAULT \'Study Material\', dept TEXT DEFAULT \'General\', description TEXT, upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, file_type TEXT NOT NULL, file_size BIGINT NOT NULL)')
+        cursor.execute('CREATE TABLE IF NOT EXISTS files (id SERIAL PRIMARY KEY, original_filename TEXT NOT NULL, stored_filename TEXT NOT NULL, uploader_username TEXT NOT NULL, subject TEXT NOT NULL, semester TEXT NOT NULL, category TEXT DEFAULT \'Study Material\', dept TEXT DEFAULT \'General\', description TEXT, upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, file_type TEXT NOT NULL, file_size BIGINT NOT NULL, storage_resource_type TEXT)')
         # Comments
         cursor.execute('CREATE TABLE IF NOT EXISTS comments (id SERIAL PRIMARY KEY, file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, username TEXT, guest_dept TEXT, comment TEXT NOT NULL, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
         # Notifications
@@ -405,10 +405,10 @@ def upload_file():
             try:
                 storage = get_storage_type()
                 
+                res_type = "auto"
                 if storage == 'cloudinary':
                     print(f"DEBUG: Uploading to Cloudinary: {random_name}")
                     
-                    # Use 'auto' for better compatibility with PDFs and other documents
                     upload_result = cloudinary.uploader.upload(
                         file, 
                         public_id=random_name.rsplit('.', 1)[0],
@@ -416,6 +416,8 @@ def upload_file():
                         use_filename=True,
                         unique_filename=False
                     )
+                    res_type = upload_result.get('resource_type', 'raw')
+                    print(f"DEBUG: Cloudinary upload successful. Resource Type: {res_type}")
                     
                 elif storage == 's3':
                     print(f"DEBUG: Uploading to S3: {random_name}")
@@ -440,10 +442,10 @@ def upload_file():
             conn = get_db_connection()
             try:
                 cursor = conn.cursor()
-                sql = 'INSERT INTO files (original_filename, stored_filename, uploader_username, subject, semester, category, dept, file_type, file_size, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                sql = 'INSERT INTO files (original_filename, stored_filename, uploader_username, subject, semester, category, dept, file_type, file_size, description, storage_resource_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
                 if DATABASE_URL:
                     sql += " RETURNING id"
-                cursor.execute(sql, (original_filename, random_name, session['username'], subject, semester, category, dept, file_ext, file_length, description))
+                cursor.execute(sql, (original_filename, random_name, session['username'], subject, semester, category, dept, file_ext, file_length, description, res_type))
                 file_id = cursor.lastrowid
                 
                 if session.get('role') == 'admin' and file_id:
@@ -568,21 +570,18 @@ def file_content(file_id):
         
         if storage == 'cloudinary':
             try:
-                # Need to construct the URL.
-                # If we used public_id = stored_filename without ext (mostly)
                 filename = file_data['stored_filename']
-                ext = filename.rsplit('.', 1)[1].lower()
+                res_type = file_data.get('storage_resource_type') or 'raw'
                 
-                res_type = 'raw'
-                if ext in ['jpg', 'png', 'jpeg', 'gif', 'webp', 'pdf']:
-                    res_type = 'image'
+                # If res_type is not stored, fallback to guessing
+                if not file_data.get('storage_resource_type'):
+                    ext = filename.rsplit('.', 1)[1].lower()
+                    if ext in ['jpg', 'png', 'jpeg', 'gif', 'webp', 'pdf']:
+                        res_type = 'image'
+                    else:
+                        res_type = 'raw'
                     
-                # Generate direct URL
-                # public_id is stored_filename MINUS extension if we relied on Cloudinary adding it?
-                # Actually in upload we did: public_id=random_name.rsplit('.', 1)[0]
                 public_id = filename.rsplit('.', 1)[0]
-                
-                # Cloudinary URL
                 url, options = cloudinary.utils.cloudinary_url(public_id, resource_type=res_type)
                 return redirect(url)
             except Exception as e:
@@ -632,20 +631,26 @@ def get_file_base64(file_id):
                 # Fetch content via URL then encode
                 import requests
                 filename = file_data['stored_filename']
-                ext = filename.rsplit('.', 1)[1].lower()
-                res_type = 'raw'
-                if ext in ['jpg', 'png', 'jpeg', 'gif', 'webp', 'pdf']:
-                    res_type = 'image'
+                res_type = file_data.get('storage_resource_type') or 'raw'
+                
+                if not file_data.get('storage_resource_type'):
+                    ext = filename.rsplit('.', 1)[1].lower()
+                    if ext in ['jpg', 'png', 'jpeg', 'gif', 'webp', 'pdf']:
+                        res_type = 'image'
+                    else:
+                        res_type = 'raw'
                     
                 public_id = filename.rsplit('.', 1)[0]
                 url, _ = cloudinary.utils.cloudinary_url(public_id, resource_type=res_type)
                 
+                print(f"DEBUG: Fetching for Base64 from: {url} (Type: {res_type})")
                 resp = requests.get(url)
                 if resp.status_code == 200:
                     encoded_string = base64.b64encode(resp.content).decode('utf-8')
                     return {"data": encoded_string}
                 else:
-                    return {"error": "Cloud fetch failed"}, 500
+                    print(f"DEBUG: Cloud fetch failed for {filename}. Status: {resp.status_code}")
+                    return {"error": f"Cloud fetch failed with status {resp.status_code}"}, 500
 
             elif storage == 's3':
                 # Fetch bytes from S3
@@ -683,10 +688,15 @@ def download_file(file_id):
         if storage == 'cloudinary':
              try:
                 filename = file_data['stored_filename']
-                ext = filename.rsplit('.', 1)[1].lower()
-                res_type = 'raw'
-                if ext in ['jpg', 'png', 'jpeg', 'gif', 'webp', 'pdf']:
-                    res_type = 'image'
+                res_type = file_data.get('storage_resource_type') or 'raw'
+                
+                if not file_data.get('storage_resource_type'):
+                    ext = filename.rsplit('.', 1)[1].lower()
+                    if ext in ['jpg', 'png', 'jpeg', 'gif', 'webp', 'pdf']:
+                        res_type = 'image'
+                    else:
+                        res_type = 'raw'
+
                 public_id = filename.rsplit('.', 1)[0]
                 
                 # Cloudinary URL (attachment)
@@ -732,10 +742,14 @@ def delete_file(file_id):
             
             if storage == 'cloudinary':
                 public_id = filename.rsplit('.', 1)[0]
-                ext = filename.rsplit('.', 1)[1].lower()
-                res_type = 'raw'
-                if ext in ['jpg', 'png', 'jpeg', 'gif', 'webp', 'pdf']:
-                    res_type = 'image'
+                res_type = file_data.get('storage_resource_type') or 'raw'
+                
+                if not file_data.get('storage_resource_type'):
+                    ext = filename.rsplit('.', 1)[1].lower()
+                    if ext in ['jpg', 'png', 'jpeg', 'gif', 'webp', 'pdf']:
+                        res_type = 'image'
+                    else:
+                        res_type = 'raw'
                     
                 cloudinary.uploader.destroy(public_id, resource_type=res_type)
                 print(f"Deleted from Cloudinary: {public_id}")
