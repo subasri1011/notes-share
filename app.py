@@ -227,16 +227,33 @@ def init_postgreSQL():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        # Users
+        
+        # 1. Base Tables Creation
         cursor.execute('CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN (\'admin\', \'student\')))')
-        # Files
-        cursor.execute('CREATE TABLE IF NOT EXISTS files (id SERIAL PRIMARY KEY, original_filename TEXT NOT NULL, stored_filename TEXT NOT NULL, uploader_username TEXT NOT NULL, subject TEXT NOT NULL, semester TEXT NOT NULL, category TEXT DEFAULT \'Study Material\', dept TEXT DEFAULT \'General\', description TEXT, upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, file_type TEXT NOT NULL, file_size BIGINT NOT NULL, storage_resource_type TEXT)')
-        # Comments
+        cursor.execute('CREATE TABLE IF NOT EXISTS files (id SERIAL PRIMARY KEY, original_filename TEXT NOT NULL, stored_filename TEXT NOT NULL, uploader_username TEXT NOT NULL, subject TEXT NOT NULL, semester TEXT NOT NULL, upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, file_type TEXT NOT NULL, file_size BIGINT NOT NULL)')
         cursor.execute('CREATE TABLE IF NOT EXISTS comments (id SERIAL PRIMARY KEY, file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, username TEXT, guest_dept TEXT, comment TEXT NOT NULL, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
-        # Notifications
         cursor.execute('CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, message TEXT NOT NULL, link TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
         
-        # Check if admin exists
+        # 2. Patch missing columns (PostgreSQL specific)
+        # Using a list of (column_name, definition)
+        patches = [
+            ('category', 'TEXT DEFAULT \'Study Material\''),
+            ('dept', 'TEXT DEFAULT \'General\''),
+            ('description', 'TEXT'),
+            ('storage_resource_type', 'TEXT')
+        ]
+        
+        for col, definition in patches:
+            try:
+                # Check if column exists
+                cursor.execute(f"SELECT 1 FROM information_schema.columns WHERE table_name='files' AND column_name='{col}'")
+                if not cursor.fetchone():
+                    print(f"DEBUG: Patching PostgreSQL - Adding column {col}")
+                    cursor.execute(f"ALTER TABLE files ADD COLUMN {col} {definition}")
+            except Exception as patch_e:
+                print(f"DEBUG: Patching column {col} failed: {patch_e}")
+        
+        # 3. Default Admin
         admin = conn.execute('SELECT * FROM users WHERE username = ?', ('admin',)).fetchone()
         if not admin:
             from werkzeug.security import generate_password_hash
