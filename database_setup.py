@@ -30,9 +30,22 @@ def init_db():
             uploader_username TEXT NOT NULL,
             subject TEXT NOT NULL,
             semester TEXT NOT NULL,
+            category TEXT DEFAULT 'Study Material',
+            dept TEXT DEFAULT 'General',
+            description TEXT,
             upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             file_type TEXT NOT NULL,
             file_size INTEGER NOT NULL
+        )
+    ''')
+
+    # Create Notifications Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            message TEXT NOT NULL,
+            link TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 

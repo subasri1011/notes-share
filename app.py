@@ -201,8 +201,6 @@ def file_icon_filter(filename):
     }
     return icons.get(ext, 'fa-file')
 
-    return icons.get(ext, 'fa-file')
-
 @app.context_processor
 def inject_notifications():
     try:
@@ -409,22 +407,12 @@ def upload_file():
                 
                 if storage == 'cloudinary':
                     print(f"DEBUG: Uploading to Cloudinary: {random_name}")
-                    file_bytes = file.read() # Read file first
-                    file.seek(0) # Reset pointer
                     
-                    # Determine resource type
-                    res_type = "auto"
-                    if file_ext in ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'csv', 'txt', 'py']: 
-                        # Removed zip/exe reference above
-                        if file_ext in ['jpg', 'png', 'jpeg', 'gif', 'webp', 'pdf']:
-                            res_type = 'image'
-                        else:
-                            res_type = 'raw'
-
+                    # Use 'auto' for better compatibility with PDFs and other documents
                     upload_result = cloudinary.uploader.upload(
                         file, 
                         public_id=random_name.rsplit('.', 1)[0],
-                        resource_type=res_type,
+                        resource_type="auto",
                         use_filename=True,
                         unique_filename=False
                     )
