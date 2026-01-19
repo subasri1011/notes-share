@@ -46,7 +46,8 @@ if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY:
         cloudinary.config(
             cloud_name=CLOUDINARY_CLOUD_NAME,
             api_key=CLOUDINARY_API_KEY,
-            api_secret=CLOUDINARY_API_SECRET
+            api_secret=CLOUDINARY_API_SECRET,
+            secure=True
         )
         cloudinary_active = True
         print("[OK] Cloudinary Connected Successfully")
@@ -427,9 +428,10 @@ def upload_file():
                 if storage == 'cloudinary':
                     print(f"DEBUG: Uploading to Cloudinary: {random_name}")
                     
+                    # Store with EXTENSION in public_id for easier retrieval and better "raw" support
                     upload_result = cloudinary.uploader.upload(
                         file, 
-                        public_id=random_name.rsplit('.', 1)[0],
+                        public_id=random_name,
                         resource_type="auto",
                         use_filename=True,
                         unique_filename=False
@@ -593,17 +595,18 @@ def file_content(file_id):
                 
                 # If res_type is not stored, fallback to guessing
                 if not file_data.get('storage_resource_type'):
-                    ext = filename.rsplit('.', 1)[1].lower()
+                    ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
                     if ext in ['jpg', 'png', 'jpeg', 'gif', 'webp', 'pdf']:
                         res_type = 'image'
                     else:
                         res_type = 'raw'
                     
-                public_id = filename.rsplit('.', 1)[0]
-                ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+                # We now store public_id WITH extension. 
+                # If the stored_filename has an extension, we use it directly as public_id
+                public_id = filename 
                 
-                # For Cloudinary, including the extension in the URL is more reliable for PDFs and non-images
-                url, options = cloudinary.utils.cloudinary_url(public_id, resource_type=res_type, format=ext)
+                # Cloudinary URL
+                url, options = cloudinary.utils.cloudinary_url(public_id, resource_type=res_type)
                 return redirect(url)
             except Exception as e:
                 print(f"Cloudinary View Error: {e}")
@@ -655,15 +658,14 @@ def get_file_base64(file_id):
                 res_type = file_data.get('storage_resource_type') or 'raw'
                 
                 if not file_data.get('storage_resource_type'):
-                    ext = filename.rsplit('.', 1)[1].lower()
+                    ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
                     if ext in ['jpg', 'png', 'jpeg', 'gif', 'webp', 'pdf']:
                         res_type = 'image'
                     else:
                         res_type = 'raw'
                     
-                public_id = filename.rsplit('.', 1)[0]
-                ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
-                url, _ = cloudinary.utils.cloudinary_url(public_id, resource_type=res_type, format=ext)
+                public_id = filename
+                url, _ = cloudinary.utils.cloudinary_url(public_id, resource_type=res_type)
                 
                 print(f"DEBUG: Fetching for Base64 from: {url} (Type: {res_type})")
                 resp = requests.get(url)
@@ -713,17 +715,21 @@ def download_file(file_id):
                 res_type = file_data.get('storage_resource_type') or 'raw'
                 
                 if not file_data.get('storage_resource_type'):
-                    ext = filename.rsplit('.', 1)[1].lower()
+                    ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
                     if ext in ['jpg', 'png', 'jpeg', 'gif', 'webp', 'pdf']:
                         res_type = 'image'
                     else:
                         res_type = 'raw'
 
-                public_id = filename.rsplit('.', 1)[0]
-                ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+                public_id = filename
                 
-                # Cloudinary URL (attachment) + format to preserve extension
-                url, _ = cloudinary.utils.cloudinary_url(public_id, resource_type=res_type, flags="attachment", format=ext)
+                # Force attachment with original filename for better user experience
+                original_name = file_data['original_filename']
+                url, _ = cloudinary.utils.cloudinary_url(
+                    public_id, 
+                    resource_type=res_type, 
+                    flags=f"attachment:{original_name}"
+                )
                 return redirect(url)
              except Exception as e:
                  abort(500)
@@ -764,11 +770,11 @@ def delete_file(file_id):
             storage = get_storage_type()
             
             if storage == 'cloudinary':
-                public_id = filename.rsplit('.', 1)[0]
+                public_id = filename # Now includes extension
                 res_type = file_data.get('storage_resource_type') or 'raw'
                 
                 if not file_data.get('storage_resource_type'):
-                    ext = filename.rsplit('.', 1)[1].lower()
+                    ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
                     if ext in ['jpg', 'png', 'jpeg', 'gif', 'webp', 'pdf']:
                         res_type = 'image'
                     else:
