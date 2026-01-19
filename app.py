@@ -79,7 +79,8 @@ csp = {
     'script-src': ['\'self\'', '\'unsafe-inline\'', 'cdnjs.cloudflare.com', 'cdn.sheetjs.com'],
     'style-src': ['\'self\'', '\'unsafe-inline\'', 'cdnjs.cloudflare.com', 'fonts.googleapis.com'],
     'font-src': ['\'self\'', 'fonts.gstatic.com', 'cdnjs.cloudflare.com'],
-    'img-src': ['\'self\'', 'data:', '*'] # Allow images from anywhere (Cloudinary/S3)
+    'img-src': ['\'self\'', 'data:', '*'], 
+    'frame-src': ['\'self\'', 'docs.google.com', '*.cloudinary.com', '*.amazonaws.com']
 }
 talisman = Talisman(app, content_security_policy=csp, force_https=False) 
 # Note: force_https=False because we are running on local IP without certs currently. 
@@ -582,7 +583,10 @@ def file_content(file_id):
                         res_type = 'raw'
                     
                 public_id = filename.rsplit('.', 1)[0]
-                url, options = cloudinary.utils.cloudinary_url(public_id, resource_type=res_type)
+                ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+                
+                # For Cloudinary, including the extension in the URL is more reliable for PDFs and non-images
+                url, options = cloudinary.utils.cloudinary_url(public_id, resource_type=res_type, format=ext)
                 return redirect(url)
             except Exception as e:
                 print(f"Cloudinary View Error: {e}")
@@ -641,7 +645,8 @@ def get_file_base64(file_id):
                         res_type = 'raw'
                     
                 public_id = filename.rsplit('.', 1)[0]
-                url, _ = cloudinary.utils.cloudinary_url(public_id, resource_type=res_type)
+                ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+                url, _ = cloudinary.utils.cloudinary_url(public_id, resource_type=res_type, format=ext)
                 
                 print(f"DEBUG: Fetching for Base64 from: {url} (Type: {res_type})")
                 resp = requests.get(url)
@@ -698,9 +703,10 @@ def download_file(file_id):
                         res_type = 'raw'
 
                 public_id = filename.rsplit('.', 1)[0]
+                ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
                 
-                # Cloudinary URL (attachment)
-                url, _ = cloudinary.utils.cloudinary_url(public_id, resource_type=res_type, flags="attachment")
+                # Cloudinary URL (attachment) + format to preserve extension
+                url, _ = cloudinary.utils.cloudinary_url(public_id, resource_type=res_type, flags="attachment", format=ext)
                 return redirect(url)
              except Exception as e:
                  abort(500)
