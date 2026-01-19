@@ -35,7 +35,8 @@ def init_db():
             description TEXT,
             upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             file_type TEXT NOT NULL,
-            file_size INTEGER NOT NULL
+            file_size INTEGER NOT NULL,
+            storage_resource_type TEXT
         )
     ''')
 
