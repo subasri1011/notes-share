@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: college-notes
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: notes-db
+          property: connectionString
+      - key: CLOUDINARY_CLOUD_NAME
+        value: dgwfdlwcw
+      - key: CLOUDINARY_API_KEY
+        value: 498172598213555
+      - key: CLOUDINARY_API_SECRET
+        value: cWEMdSyhMtbD2krGk89oEiBRTNQ
+      - key: SECRET_KEY
+        generateValue: true
+
+databases:
+  - name: notes-db
+    plan: free
