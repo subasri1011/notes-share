@@ -292,6 +292,15 @@ if DATABASE_URL:
     except Exception as e:
         print(f"[ERROR] Auto-Init Failed: {e}")
 
+# --- Security: Require Login for All Routes ---
+@app.before_request
+def require_login():
+    # Endpoints that anyone can access
+    allowed_endpoints = ['login', 'static', 'health']
+    
+    if 'user_id' not in session and request.endpoint not in allowed_endpoints:
+        return redirect(url_for('login'))
+
 # --- Routes ---
 
 @app.route('/')
