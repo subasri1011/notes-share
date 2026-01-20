@@ -255,11 +255,14 @@ def init_postgreSQL():
                 print(f"DEBUG: Patching column {col} failed: {patch_e}")
         
         # 3. Default Admin
-        admin = conn.execute('SELECT * FROM users WHERE username = ?', ('admin',)).fetchone()
+        # Standardize admin check using CursorWrapper correctly
+        cursor.execute("SELECT * FROM users WHERE username = ?", ("admin",))
+        admin = cursor.fetchone()
+        
         if not admin:
             from werkzeug.security import generate_password_hash
             pwd_hash = generate_password_hash("admin1234")
-            conn.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', ('admin', pwd_hash, 'admin'))
+            cursor.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", ("admin", pwd_hash, "admin"))
         
         conn.commit()
     except Exception as e:
@@ -296,9 +299,13 @@ if DATABASE_URL:
 @app.before_request
 def require_login():
     # Endpoints that anyone can access
-    allowed_endpoints = ['login', 'static', 'health']
+    allowed_endpoints = ['login', 'logout', 'register', 'static', 'health']
     
-    if 'user_id' not in session and request.endpoint not in allowed_endpoints:
+    # If it's a static file or allowed route, let it through
+    if not request.endpoint or request.endpoint in allowed_endpoints:
+        return
+
+    if 'user_id' not in session:
         return redirect(url_for('login'))
 
 # --- Routes ---
@@ -579,13 +586,6 @@ def delete_comment(comment_id):
         return redirect(url_for('view_file_page', file_id=file_id))
     return redirect(url_for('home'))
 
-# ... (rest of file) ...
-
-if __name__ == '__main__':
-    if not os.path.exists(app.config['UPLOAD_FOLDER']):
-        os.makedirs(app.config['UPLOAD_FOLDER'])
-    # SECURITY: Debug disabled, 0.0.0.0 for mobile access
-    app.run(host='0.0.0.0', debug=False, port=5000)
 
 @app.route('/file_content/<int:file_id>')
 def file_content(file_id):
@@ -610,11 +610,10 @@ def file_content(file_id):
                     else:
                         res_type = 'raw'
                     
-                # We now store public_id WITH extension. 
-                # If the stored_filename has an extension, we use it directly as public_id
+                # Consistent Public ID: uuid.ext
                 public_id = filename 
                 
-                # Cloudinary URL
+                # Cloudinary URL: Simple and clean. No format needed since ext is in public_id.
                 url, options = cloudinary.utils.cloudinary_url(public_id, resource_type=res_type)
                 return redirect(url)
             except Exception as e:
@@ -732,7 +731,7 @@ def download_file(file_id):
 
                 public_id = filename
                 
-                # Force attachment with original filename for better user experience
+                # Use named attachment to force original filename on download
                 original_name = file_data['original_filename']
                 url, _ = cloudinary.utils.cloudinary_url(
                     public_id, 
@@ -825,4 +824,8 @@ def admin_dashboard():
     
     return render_template('admin.html', users=users, files=files)
 
-
+if __name__ == '__main__':
+    if not os.path.exists(app.config['UPLOAD_FOLDER']):
+        os.makedirs(app.config['UPLOAD_FOLDER'])
+    # SECURITY: Debug disabled, 0.0.0.0 for mobile access
+    app.run(host='0.0.0.0', debug=False, port=5000)
