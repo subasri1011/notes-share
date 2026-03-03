@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="relative min-h-screen pt-8 pb-32 px-6">
+
+    <!-- Page Header -->
+    <div class="container mx-auto text-center mb-24">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8">
+            <i class="fa-solid fa-bullhorn text-yellow-300"></i>
+            <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Official Notices</span>
+        </div>
+        <h1 class="text-5xl md:text-7xl font-satoshi font-black tracking-tight mb-6">College Circulars.</h1>
+        <p class="text-lg text-slate-400 max-w-xl mx-auto font-medium">Important college-wide announcements and
+            department-specific notices delivered in real-time.</p>
+        {% if session.get('role') == 'admin' %}
+        <div class="mt-10">
+            <a href="{{ url_for('upload_circular') }}"
+                class="inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-bold bg-yellow-300 text-black hover:scale-105 active:scale-95 transition-all shadow-lg shadow-yellow-300/20">
+                <i class="fa-solid fa-plus-circle"></i> Publish New Circular
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Search Bar -->
+    <div class="container mx-auto max-w-3xl mb-20">
+        <form id="search-form" action="{{ url_for('circulars_route') }}" method="get">
+            <div
+                class="flex items-center p-2 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl focus-within:border-yellow-300/40 transition-all">
+                <i class="fa-solid fa-magnifying-glass ml-6 text-yellow-300/60"></i>
+                <input type="text" name="q"
+                    class="bg-transparent border-none text-lg py-4 px-6 w-full text-white placeholder-slate-600 font-medium focus:outline-none"
+                    placeholder="Search by title or topic..." value="{{ request.args.get('q', '') }}">
+
+                <select name="dept"
+                    class="bg-transparent border border-white/10 text-slate-400 text-xs font-bold uppercase tracking-widest py-3 px-4 rounded-2xl mr-2 focus:outline-none">
+                    <option value="" class="bg-slate-900">All Depts</option>
+                    <option value="CSE" class="bg-slate-900" {% if request.args.get('dept')=='CSE' %}selected{% endif
+                        %}>CSE</option>
+                    <option value="ECE" class="bg-slate-900" {% if request.args.get('dept')=='ECE' %}selected{% endif
+                        %}>ECE</option>
+                    <option value="IT" class="bg-slate-900" {% if request.args.get('dept')=='IT' %}selected{% endif %}>
+                        IT</option>
+                    <option value="AI&DS" class="bg-slate-900" {% if request.args.get('dept')=='AI&DS' %}selected{%
+                        endif %}>AI&DS</option>
+                </select>
+
+                <button type="submit"
+                    class="px-8 py-4 bg-yellow-300 text-black font-bold rounded-2xl hover:scale-105 active:scale-95 transition-all">
+                    Search
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Circulars Grid -->
+    <div class="container mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="circulars-grid">
+        {% for circular in circulars %}
+        <div
+            class="group p-8 rounded-[32px] bg-white/[0.03] border-l-4 border-yellow-300 border-t border-r border-b border-white/5 hover:bg-white/[0.07] hover:border-yellow-300/60 transition-all duration-500 relative overflow-hidden">
+            <!-- Hover Glow -->
+            <div
+                class="absolute inset-0 bg-yellow-300/5 opacity-0 group-hover:opacity-100 blur-[80px] transition-opacity duration-1000 pointer-events-none">
+            </div>
+
+            <div class="relative z-10">
+                <div class="flex items-start justify-between mb-6">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-yellow-300/10 border border-yellow-300/20 flex items-center justify-center flex-shrink-0 mr-4">
+                        <i class="fa-solid fa-bullhorn text-yellow-300 text-sm"></i>
+                    </div>
+                    <span
+                        class="px-3 py-1 rounded-full bg-yellow-300/10 text-yellow-300 text-[10px] font-bold uppercase tracking-widest border border-yellow-300/20">{{
+                        circular.dept }}</span>
+                </div>
+
+                <h3 class="text-xl font-bold text-yellow-100 mb-3 leading-snug">{{ circular.title }}</h3>
+                <p class="text-slate-400 text-sm leading-relaxed mb-8"
+                    style="display:-webkit-box;-webkit-line-clamp:4;line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;">
+                    {{ circular.description }}</p>
+
+                <div class="flex items-center justify-between pt-6 border-t border-white/5">
+                    <span class="text-xs font-bold text-slate-600 uppercase tracking-widest">
+                        <i class="fa-solid fa-calendar-day mr-2 opacity-60"></i>{{ circular.created_at.strftime('%b %d,
+                        %Y') if circular.created_at is not string else circular.created_at[:10] }}
+                    </span>
+                    <div class="flex gap-2">
+                        {% if circular.stored_filename %}
+                        <a href="{{ url_for('circular_content', circular_id=circular.id) }}" target="_blank"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-bold hover:bg-white/10 transition-colors">
+                            <i class="fa-solid fa-file-pdf text-red-400"></i> View PDF
+                        </a>
+                        {% endif %}
+                        {% if session.get('role') == 'admin' %}
+                        <form action="{{ url_for('delete_circular', circular_id=circular.id) }}" method="post"
+                            style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <button type="submit"
+                                class="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors"
+                                onclick="return confirm('Delete this circular?');">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-full py-48 text-center bg-white/[0.02] rounded-[40px] border border-white/5">
+            <div
+                class="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 mx-auto mb-6">
+                <i class="fa-solid fa-bell-slash text-slate-500 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-400">No Circulars Found</h3>
+            <p class="text-slate-600 font-medium mt-2">Official announcements will appear here as they arrive.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if has_more %}
+    <div id="load-more-container" class="container mx-auto text-center mt-20">
+        <button onclick="loadMore()"
+            class="px-10 py-4 rounded-2xl font-bold bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+            Load More Circulars
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    let currentPage = Number("{{ page }}");
+    function loadMore() {
+        currentPage += 1;
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('page', currentPage);
+        fetch(`${window.location.pathname}?${urlParams.toString()}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.text())
+            .then(html => {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const newGrid = doc.getElementById('circulars-grid');
+                const oldGrid = document.getElementById('circulars-grid');
+                if (newGrid && oldGrid) Array.from(newGrid.children).forEach(c => oldGrid.appendChild(c));
+                if (!doc.getElementById('load-more-container')) document.getElementById('load-more-container')?.remove();
+            }).catch(() => currentPage--);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        gsap.from('#circulars-grid > *', {
+            scrollTrigger: { trigger: '#circulars-grid', start: 'top 85%' },
+            y: 30, opacity: 0, duration: 0.8, stagger: 0.08, ease: 'power3.out'
+        });
+    });
+</script>
+{% endblock %}

@@ -3,3 +3,7 @@ __pycache__/
 .env
 uploads/
 *.db
+.secret_key
+firebase_key.json
+cleanup.log
+out.txt

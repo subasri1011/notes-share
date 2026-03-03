@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="relative pt-8 pb-16 px-6">
+    <div class="container mx-auto max-w-xl">
+
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <div
+                class="inline-flex items-center justify-center w-14 h-14 bg-yellow-300/20 rounded-2xl border border-yellow-300/30 mb-5">
+                <i class="fa-solid fa-bullhorn text-yellow-300 text-2xl"></i>
+            </div>
+            <h1 class="text-4xl font-satoshi font-black tracking-tight mb-2">Publish Circular</h1>
+            <p class="text-slate-400 font-medium">Share official notices and announcements with students.</p>
+        </div>
+
+        <!-- Card -->
+        <div
+            class="p-8 rounded-[32px] bg-white/[0.03] border border-white/10 backdrop-blur-md shadow-[0_30px_80px_rgba(0,0,0,0.4)]">
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+                <!-- File Upload Zone -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">
+                        Document File (PDF, DOC, JPG)
+                    </label>
+                    <div id="drop-zone" role="button" tabindex="0"
+                        class="border-2 border-dashed border-white/10 rounded-2xl py-12 text-center cursor-pointer hover:border-yellow-300/40 hover:bg-yellow-300/5 transition-all duration-300"
+                        onclick="document.getElementById('circ-file').click()">
+                        <i class="fa-solid fa-file-pdf text-4xl text-yellow-300/50 mb-4 block"></i>
+                        <p class="font-bold text-white mb-1">Click to select circular file</p>
+                        <p class="text-sm text-slate-500">PDF, DOC, JPG</p>
+                    </div>
+                    <input type="file" name="file" id="circ-file" class="hidden"
+                        onchange="document.getElementById('filename-display').textContent = this.files[0] ? '✅ ' + this.files[0].name : ''">
+                    <p id="filename-display" class="text-center mt-3 text-sm font-bold text-yellow-300 min-h-[1.5rem]">
+                    </p>
+                </div>
+
+                <!-- Title -->
+                <div>
+                    <label for="circ-title"
+                        class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Title /
+                        Subject</label>
+                    <input type="text" name="title" id="circ-title" required
+                        class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-white placeholder-slate-600 font-medium focus:outline-none focus:border-yellow-300/50 transition-all"
+                        placeholder="e.g. End Semester Exam Schedule">
+                </div>
+
+                <!-- Department -->
+                <div>
+                    <label for="circ-dept"
+                        class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Target
+                        Department</label>
+                    <select name="dept" id="circ-dept" required
+                        class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-white font-medium focus:outline-none focus:border-yellow-300/50 transition-all">
+                        <option value="All" class="bg-slate-900">All Departments</option>
+                        <option value="CSE" class="bg-slate-900">CSE</option>
+                        <option value="ECE" class="bg-slate-900">ECE</option>
+                        <option value="EEE" class="bg-slate-900">EEE</option>
+                        <option value="MECH" class="bg-slate-900">MECH</option>
+                        <option value="CIVIL" class="bg-slate-900">CIVIL</option>
+                        <option value="IT" class="bg-slate-900">IT</option>
+                        <option value="AI&DS" class="bg-slate-900">AI&DS</option>
+                        <option value="Cyber Security" class="bg-slate-900">Cyber Security</option>
+                    </select>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label for="circ-desc"
+                        class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Brief Description
+                        (Optional)</label>
+                    <textarea name="description" id="circ-desc" rows="3"
+                        class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-white placeholder-slate-600 font-medium focus:outline-none focus:border-yellow-300/50 transition-all resize-none"
+                        placeholder="Add a quick summary of this circular..."></textarea>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit"
+                    class="group relative w-full py-4 bg-yellow-300 text-black font-bold text-lg rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_16px_40px_rgba(253,224,71,0.2)] overflow-hidden">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700">
+                    </div>
+                    <span class="relative flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-bullhorn"></i> Publish Circular
+                    </span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

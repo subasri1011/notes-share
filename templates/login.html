@@ -1,30 +1,258 @@
 {% extends 'base.html' %}
-
 {% block content %}
-<div class="auth-container">
-    <div class="card">
-        <h2 class="text-center" style="margin-bottom: 2rem;">Welcome Back</h2>
+<div class="relative min-h-screen flex items-center justify-center px-6 pb-16">
+    <!-- Background Glow (visual only, no z-index blocking) -->
+    <div class="fixed inset-0 pointer-events-none z-[-1]">
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 blur-[150px] rounded-full">
+        </div>
+    </div>
 
-        <form method="post">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-            <div class="form-group">
-                <label class="form-label">Username</label>
-                <input type="text" name="username" class="form-control" required>
+    <div id="auth-container" class="relative z-10 w-full max-w-md">
+        <!-- Back to home -->
+        <a href="{{ url_for('home') }}" class="inline-flex items-center gap-3 mb-10 group">
+            <div
+                class="w-11 h-11 bg-primary/20 rounded-2xl flex items-center justify-center border border-primary/30 group-hover:scale-110 transition-transform duration-500">
+                <i class="fa-solid fa-graduation-cap text-primary"></i>
             </div>
+            <span
+                class="text-xl font-satoshi font-black bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">NoteShare</span>
+        </a>
 
-            <div class="form-group">
-                <label class="form-label">Password</label>
-                <input type="password" name="password" class="form-control" required>
+        <!-- Normal Login View -->
+        <div id="login-view">
+            <h1 class="text-4xl font-satoshi font-black tracking-tight mb-2">Welcome Back.</h1>
+            <p class="text-slate-400 font-medium mb-10">Sign in to access your study materials.</p>
+
+            <!-- Card -->
+            <div
+                class="p-8 rounded-[32px] bg-white/[0.04] border border-white/10 backdrop-blur-2xl shadow-[0_40px_80px_rgba(0,0,0,0.4)]">
+
+                <!-- Google Login Button (Student Access) -->
+                <button type="button" id="google-login-btn"
+                    class="w-full flex items-center justify-center gap-4 py-4 px-6 rounded-2xl bg-white text-black font-black text-sm hover:bg-slate-100 active:scale-[0.98] transition-all mb-8 shadow-xl">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5"
+                        alt="Google">
+                    <span id="btn-text">Sign in with DSCE Account</span>
+                    <span id="btn-loading" class="hidden">
+                        <i class="fa-solid fa-circle-notch fa-spin"></i> Connecting...
+                    </span>
+                </button>
+                <p id="auth-error" class="text-red-400 text-sm text-center mb-4 hidden"></p>
+
+                <div class="relative flex items-center gap-4 mb-8">
+                    <div class="flex-1 h-px bg-white/10"></div>
+                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Admin Only</span>
+                    <div class="flex-1 h-px bg-white/10"></div>
+                </div>
+
+                <form method="post" class="space-y-5">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+                    <div>
+                        <label for="username"
+                            class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Admin
+                            Username</label>
+                        <div class="relative">
+                            <i
+                                class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-primary/50 text-sm pointer-events-none"></i>
+                            <input type="text" id="username" name="username" autocomplete="username"
+                                class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-11 pr-5 text-white placeholder-slate-600 font-medium focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all"
+                                placeholder="username" required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="password"
+                            class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Admin
+                            Password</label>
+                        <div class="relative">
+                            <i
+                                class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-primary/50 text-sm pointer-events-none"></i>
+                            <input type="password" id="password" name="password" autocomplete="current-password"
+                                class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-11 pr-5 text-white placeholder-slate-600 font-medium focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all"
+                                placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                        class="group relative w-full mt-2 py-4 bg-primary text-white font-bold rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_16px_40px_rgba(139,92,246,0.3)] overflow-hidden">
+                        <div
+                            class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700">
+                        </div>
+                        <span class="relative flex items-center justify-center gap-3">
+                            Administrative Login
+                        </span>
+                    </button>
+                </form>
             </div>
+        </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
-                Login
-            </button>
-        </form>
+        <!-- Seamless Auto-login View -->
+        <div id="auto-view" class="hidden text-center py-20">
+            <div class="relative mb-8 inline-block">
+                <div
+                    class="w-24 h-24 bg-primary/20 rounded-[40px] flex items-center justify-center border border-primary/30 animate-pulse">
+                    <i class="fa-solid fa-arrows-rotate text-3xl text-primary animate-spin"></i>
+                </div>
+                <div class="absolute -inset-4 bg-primary/10 blur-2xl rounded-full z-[-1]"></div>
+            </div>
+            <h2 class="text-3xl font-satoshi font-black mb-3">Refreshing session...</h2>
+            <p class="text-slate-500 font-medium">Sit tight, we're doing this automatically.</p>
+        </div>
 
-        <p class="text-center mt-4" style="color: var(--text-muted); font-size: 0.875rem;">
-            Restricted access. Please use provided credentials.
+        <p
+            class="text-center text-slate-600 text-xs font-bold uppercase tracking-widest mt-8 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-shield-halved text-primary/40"></i> Exclusive Access for DSCE
         </p>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const firebaseConfig = {
+            apiKey: "AIzaSyBap6NI_nlowXIGddPVnLJfJAQA2sTEfE8",
+            authDomain: "notes-share-179cb.firebaseapp.com",
+            projectId: "notes-share-179cb",
+            storageBucket: "notes-share-179cb.firebasestorage.app",
+            messagingSenderId: "337290180911",
+            appId: "1:337290180911:web:5d69feff69e84e07fd89da"
+        };
+
+        const loginBtn = document.getElementById('google-login-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnLoading = document.getElementById('btn-loading');
+        const authError = document.getElementById('auth-error');
+
+        function showError(msg) {
+            console.error("[AUTH UI ERROR]", msg);
+            authError.textContent = msg;
+            authError.classList.remove('hidden');
+        }
+
+        function hideError() {
+            authError.classList.add('hidden');
+        }
+
+        function setLoading(isLoading) {
+            if (isLoading) {
+                btnText.classList.add('hidden');
+                btnLoading.classList.remove('hidden');
+                loginBtn.disabled = true;
+            } else {
+                btnText.classList.remove('hidden');
+                btnLoading.classList.add('hidden');
+                loginBtn.disabled = false;
+            }
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const isAuto = urlParams.get('auto') === 'true';
+
+        if (isAuto) {
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('auto-view').classList.remove('hidden');
+            // Remove the param from URL to avoid loop on manual refresh
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "PASTE_YOUR_API_KEY_HERE") {
+            try {
+                if (!firebase.apps || !firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                const auth = firebase.auth();
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.setCustomParameters({
+                    prompt: isAuto ? 'none' : 'select_account'
+                });
+
+                function handleAuthenticatedUser(user) {
+                    console.log("[AUTH] Handling authenticated user:", user.email);
+                    const email = user.email.toLowerCase();
+                    if (!email.endsWith('@dsce.ac.in')) {
+                        alert('Official @dsce.ac.in student email required.');
+                        auth.signOut();
+                        setLoading(false);
+                        if (isAuto) window.location.href = '/login';
+                        return;
+                    }
+
+                    user.getIdToken().then(idToken => {
+                        fetch('/auth/firebase', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': "{{ csrf_token() }}"
+                            },
+                            body: JSON.stringify({ token: idToken })
+                        })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    window.location.href = data.redirect || '/';
+                                } else {
+                                    if (!isAuto) alert('Verification failed: ' + (data.error || 'Identity verification failed.'));
+                                    auth.signOut();
+                                    setLoading(false);
+                                }
+                            })
+                            .catch(err => {
+                                console.error("[SERVER ERROR]", err);
+                                setLoading(false);
+                            });
+                    }).catch(err => {
+                        console.error("[AUTH] Error getting ID token:", err);
+                        setLoading(false);
+                    });
+                }
+
+                // Ensure session persistence is set to LOCAL
+                auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+                // Check for user in auth state change
+                auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        console.log("[AUTH] State changed: User found", user.email);
+                        // If auto mode OR login button clicked
+                        if (isAuto || loginBtn.disabled) {
+                            setLoading(true);
+                            handleAuthenticatedUser(user);
+                        }
+                    } else if (isAuto) {
+                        // In auto mode but no cached user? Fallback to normal login
+                        window.location.href = '/login';
+                    }
+                });
+
+                loginBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    hideError();
+                    setLoading(true);
+                    auth.signInWithPopup(provider)
+                        .then((result) => handleAuthenticatedUser(result.user))
+                        .catch((error) => {
+                            console.warn("[AUTH] Popup failed:", error.code);
+                            if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+                                auth.signInWithRedirect(provider);
+                            } else {
+                                setLoading(false);
+                            }
+                        });
+                });
+
+            } catch (e) {
+                console.error("[FIREBASE INIT ERROR]", e);
+                showError('Firebase failed to initialize.');
+            }
+        }
+        else {
+            console.error("[AUTH] Firebase not available");
+            loginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showError('Security Module (Firebase) not found.');
+            });
+        }
+    });
+</script>
 {% endblock %}

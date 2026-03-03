@@ -4,117 +4,280 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}College Notes{% endblock %} - Share & Learn</title>
+    <meta name="description"
+        content="A collaborative platform for students to share, organize, and access study materials effectively. Stay updated with college announcements and events at {{ college_short }} NoteShare.">
+    <meta name="keywords"
+        content="college notes, study materials, student collaboration, official circulars, college events, {{ college_short }}">
+    <meta name="author" content="NoteShare">
+    <meta name="robots" content="index, follow">
+    <title>{% block title %}College Notes{% endblock %} - {{ college_short }} NoteShare</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" rel="stylesheet">
+
+    <!-- Tailwind and Animation Libs -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function () {
+            // IMPORTANT: User should replace this with their actual Public Key from EmailJS
+            emailjs.init("lqdePE8AIXbHKSs7Y");
+        })();
+    </script>
+
+    <!-- Identity Modules -->
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.8.1/firebase-app-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.8.1/firebase-auth-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8b5cf6',
+                        secondary: '#d946ef',
+                        dark: '#020617',
+                        card: 'rgba(30, 41, 59, 0.5)',
+                    },
+                    fontFamily: {
+                        satoshi: ['Satoshi', 'sans-serif'],
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'glow': 'glow 4s ease-in-out infinite',
+                    }
+                }
+            }
+        }
+    </script>
     {% block extra_css %}{% endblock %}
 </head>
 
-<body>
-
-    <div class="flash-messages">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">
-            {{ message }}
-        </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+<body class="bg-dark text-slate-100 font-inter selection:bg-primary/30 selection:text-white">
+    <!-- Global Noise Texture -->
+    <!-- Global Noise Texture (z-0: below nav and content) -->
+    <div
+        class="fixed inset-0 pointer-events-none z-0 opacity-[0.035] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]">
     </div>
 
-    <nav class="navbar-wrapper">
-        <div class="navbar-container">
-            <a href="{{ url_for('home') }}" class="logo">
-                <i class="fas fa-graduation-cap"></i> NoteShare
-            </a>
-            <div class="nav-links">
-                <a href="{{ url_for('home') }}">Home</a>
-                {% if session.get('user_id') %}
-                <a href="{{ url_for('upload_file') }}">Upload</a>
-                {% if session.get('role') == 'admin' %}
-                <a href="{{ url_for('admin_dashboard') }}">Admin</a>
-                {% endif %}
-
-                <!-- Notification Bell -->
-                <div class="notification-wrapper" style="position: relative; display: inline-block;">
-                    <a href="#" id="notif-btn"
-                        style="position: relative; padding: 0.5rem; display: flex; align-items: center;">
-                        <i class="fas fa-bell"></i>
-                        {% if notifications %}
-                        <span
-                            style="position: absolute; top: 0px; right: 0px; background: #ef4444; color: white; border-radius: 50%; width: 8px; height: 8px;"></span>
-                        {% endif %}
-                    </a>
-                    <div class="notif-dropdown"
-                        style="display: none; position: absolute; right: 0; top: 120%; width: 300px; background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 1000; overflow: hidden; backdrop-filter: blur(20px);">
-                        <div style="padding: 1rem; border-bottom: 1px solid var(--glass-border); font-weight: 600;">
-                            Notifications</div>
-                        <div style="max-height: 300px; overflow-y: auto;">
-                            {% if notifications %}
-                            {% for n in notifications %}
-                            <a href="{{ n.link }}"
-                                style="display: block; padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; text-decoration: none; color: var(--text-muted); transition: background 0.2s;">
-                                <div style="color: var(--text-main); margin-bottom: 0.25rem;">{{ n.message }}</div>
-                                <div style="font-size: 0.75rem; opacity: 0.7;">{{ n.created_at }}</div>
-                            </a>
-                            {% endfor %}
-                            {% else %}
-                            <div style="padding: 1rem; text-align: center; color: var(--text-muted);">No new
-                                notifications</div>
-                            {% endif %}
-                        </div>
-                    </div>
+    <div class="flash-messages">
+        <div class="fixed top-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md px-6 pointer-events-none">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert pointer-events-auto p-4 rounded-2xl border backdrop-blur-xl mb-4 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500
+            {% if category == 'success' %} bg-emerald-500/10 border-emerald-500/20 text-emerald-400
+            {% elif category == 'error' %} bg-red-500/10 border-red-500/20 text-red-400
+            {% else %} bg-blue-500/10 border-blue-500/20 text-blue-400 {% endif %}">
+                <div
+                    class="w-2 h-2 rounded-full shrink-0 {% if category == 'success' %} bg-emerald-500 {% elif category == 'error' %} bg-red-500 {% else %} bg-blue-500 {% endif %} shadow-[0_0_10px_rgba(var(--tw-color),0.5)]">
                 </div>
-                <!-- Auth Script -->
-                <script>
-                    document.getElementById('notif-btn').addEventListener('click', function (e) {
-                        e.preventDefault();
-                        const dropdown = document.querySelector('.notif-dropdown');
-                        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-                    });
-                    document.addEventListener('click', function (e) {
-                        if (!e.target.closest('.notification-wrapper')) {
-                            document.querySelector('.notif-dropdown').style.display = 'none';
-                        }
-                    });
-                </script>
+                <p class="text-sm font-bold tracking-tight">{{ message }}</p>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+    </div>
 
-                <a href="{{ url_for('logout') }}" style="margin-left: 0.5rem;">Logout ({{ session.get('username')
-                    }})</a>
+    <!-- Floating Navbar -->
+    <nav id="main-nav"
+        class="fixed top-0 left-0 right-0 z-50 transition-all duration-500 bg-black/30 backdrop-blur-xl border-b border-white/5 py-4">
+        <div class="container mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="{{ url_for('home') }}" class="group flex items-center gap-3 no-underline">
+                <div
+                    class="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center border border-primary/30 group-hover:scale-110 transition-transform duration-500">
+                    <i class="fa-solid fa-graduation-cap text-primary"></i>
+                </div>
+                <span
+                    class="text-2xl font-satoshi font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">NoteShare</span>
+            </a>
+
+            <div class="hidden md:flex items-center gap-10">
+                <a href="{{ url_for('home') }}"
+                    class="nav-link relative text-sm font-medium text-slate-400 hover:text-white transition-colors">About</a>
+                <a href="{{ url_for('notes') }}"
+                    class="nav-link relative text-sm font-medium text-slate-400 hover:text-white transition-colors">Notes</a>
+                <a href="{{ url_for('circulars_route') }}"
+                    class="nav-link relative text-sm font-medium text-slate-400 hover:text-white transition-colors">Circulars</a>
+                <a href="{{ url_for('inter_events_route') }}"
+                    class="nav-link relative text-sm font-medium text-slate-400 hover:text-white transition-colors">Inter</a>
+                <a href="{{ url_for('intra_events_route') }}"
+                    class="nav-link relative text-sm font-medium text-slate-400 hover:text-white transition-colors">Intra</a>
+            </div>
+
+            <div class="flex items-center gap-6">
+                {% if session.get('user_id') %}
+                <a href="{{ url_for('logout') }}"
+                    class="text-xs font-semibold uppercase tracking-widest text-slate-500 hover:text-red-400 transition-colors">Esc
+                    Logout</a>
                 {% else %}
-                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('login') }}"
+                    class="group relative px-6 py-2.5 bg-white text-black text-sm font-bold rounded-full transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                    Sign In
+                </a>
                 {% endif %}
             </div>
         </div>
     </nav>
 
-    <div class="container" style="padding-top: 1rem;">
+    <main class="relative z-10 pt-[88px]">
+        {% block content %}{% endblock %}
+    </main>
 
-        <main>
-            {% block content %}{% endblock %}
-        </main>
+    <footer class="relative z-10 mt-20 border-t border-white/5 bg-black/20 py-16">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center border border-primary/30">
+                        <i class="fa-solid fa-graduation-cap text-primary text-sm"></i>
+                    </div>
+                    <span class="text-lg font-satoshi font-bold tracking-tight">NoteShare</span>
+                </div>
+                <div class="flex gap-8 text-slate-500 text-sm font-medium">
+                    <button onclick="openBugModal()"
+                        class="hover:text-white transition-colors flex items-center gap-2 cursor-pointer bg-transparent border-none p-0 font-medium">
+                        <i class="fa-solid fa-circle-exclamation text-red-400/60"></i> Report Bug
+                    </button>
+                    <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
+                    <a href="#" class="hover:text-white transition-colors">Support</a>
+                </div>
+                <p class="text-slate-600 text-sm font-medium">
+                    &copy; 2026 NoteShare. Created by <span
+                        class="text-primary font-black uppercase tracking-widest text-[10px]">NFS Programming</span>
+                </p>
+            </div>
+        </div>
+    </footer>
 
-        <footer style="text-align: center; padding: 3rem 0; color: var(--text-muted); font-size: 0.875rem;">
-            &copy; 2026 College Notes Platform. All rights reserved.
-        </footer>
+    <div id="bug-report-modal"
+        class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/80 backdrop-blur-md px-6">
+        <div class="w-full max-w-lg bg-[#111] border border-white/10 rounded-[40px] p-10 relative overflow-hidden">
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-red-500/10 blur-[80px] rounded-full"></div>
+            <h2 class="text-3xl font-black mb-2">Report a Glitch.</h2>
+            <p class="text-slate-500 font-medium mb-8">Tell us what's broken and we'll fix it.</p>
+
+            <form id="bug-form" class="space-y-6">
+                <input type="hidden" name="user_email" value="{{ session.get('username', 'anonymous') }}@dsce.ac.in">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-2 ml-1">Issue
+                        Category</label>
+                    <select name="category"
+                        class="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm font-medium focus:outline-none focus:border-red-500/50 transition-all">
+                        <option value="Authentication" class="bg-slate-900">Login/Auth Problem</option>
+                        <option value="Upload" class="bg-slate-900">File Upload Issue</option>
+                        <option value="UI" class="bg-slate-900">Visual/Design Glitch</option>
+                        <option value="Performance" class="bg-slate-900">Slow Performance</option>
+                        <option value="Other" class="bg-slate-900">Something Else</option>
+                    </select>
+                </div>
+                <div>
+                    <label
+                        class="block text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-2 ml-1">Detailed
+                        Description</label>
+                    <textarea name="message" required rows="4"
+                        class="w-full bg-white/5 border border-white/10 rounded-3xl py-4 px-6 text-white text-sm font-medium placeholder-slate-700 focus:outline-none focus:border-red-500/50 transition-all"
+                        placeholder="Explain the glitch step by step..."></textarea>
+                </div>
+                <div class="flex gap-4 pt-2">
+                    <button type="button" onclick="closeBugModal()"
+                        class="flex-1 py-4 rounded-2xl font-bold bg-white/5 hover:bg-white/10 transition-all">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 py-4 rounded-2xl font-bold bg-red-500 text-white shadow-lg shadow-red-500/20 hover:brightness-110 active:scale-95 transition-all">Dispatch
+                        Report</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
-        // Auto-hide alerts
+        gsap.registerPlugin(ScrollTrigger);
+
+        function openBugModal() {
+            const modal = document.getElementById('bug-report-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            gsap.from(modal.children[0], { scale: 0.9, opacity: 0, duration: 0.4, ease: 'back.out(1.7)' });
+        }
+
+        function closeBugModal() {
+            const modal = document.getElementById('bug-report-modal');
+            gsap.to(modal.children[0], {
+                scale: 0.9, opacity: 0, duration: 0.3, onComplete: () => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        }
+
+        document.getElementById('bug-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = 'Dispatching...';
+
+            // Parameters MUST match your EmailJS template placeholders: {{title}}, {{name}}, {{email}}, {{time}}, {{message}}
+            emailjs.send("service_xp1iqrr", "template_g6wiafa", {
+                title: e.target.category.value,
+                name: "{{ session.get('username', 'Anonymous User') }}",
+                email: e.target.user_email.value,
+                time: new Date().toLocaleString(),
+                message: e.target.message.value
+            }).then(() => {
+                alert('Bug report dispatched successfully! Our engineers will investigate.');
+                closeBugModal();
+                e.target.reset();
+            }).catch((err) => {
+                console.error('EmailJS Error:', err);
+                alert('Dispatch failed. Please check your network or try again later.');
+            }).finally(() => {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            });
+        });
+
+        // Navbar Scroll Effect — tightens on scroll
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('main-nav');
+            if (window.scrollY > 50) {
+                nav.classList.add('py-2');
+                nav.classList.add('bg-black/60');
+            } else {
+                nav.classList.remove('py-2');
+                nav.classList.remove('bg-black/30');
+            }
+        });
+    </script>
+
+    <script>
+        // Auto-hide alerts with GSAP for reliability
         setTimeout(() => {
             const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                alert.style.opacity = '0';
-                setTimeout(() => alert.remove(), 300);
-            });
-        }, 3000);
+            if (alerts.length > 0) {
+                gsap.to(alerts, {
+                    opacity: 0,
+                    y: -20,
+                    duration: 0.6,
+                    stagger: 0.1,
+                    onComplete: () => {
+                        alerts.forEach(a => a.remove());
+                    }
+                });
+            }
+        }, 2000); // Wait 2 seconds before starting fade out
     </script>
 </body>
 

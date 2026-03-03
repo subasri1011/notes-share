@@ -1,75 +1,195 @@
 {% extends 'base.html' %}
-
 {% block content %}
-<h1 style="margin-bottom: 2rem;">Admin Dashboard</h1>
-
-<div class="grid" style="grid-template-columns: 1fr;">
-    <div class="card">
-        <h3><i class="fas fa-users"></i> Users Management</h3>
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
-                <thead>
-                    <tr style="text-align: left; border-bottom: 1px solid var(--border-color);">
-                        <th style="padding: 1rem;">ID</th>
-                        <th style="padding: 1rem;">Username</th>
-                        <th style="padding: 1rem;">Role</th>
-                        <th style="padding: 1rem;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                        <td style="padding: 1rem;">{{ user.id }}</td>
-                        <td style="padding: 1rem;">{{ user.username }}</td>
-                        <td style="padding: 1rem;">
-                            <span class="tag"
-                                style="background: {{ 'rgba(99, 102, 241, 0.2)' if user.role == 'admin' else 'rgba(16, 185, 129, 0.2)' }}">
-                                {{ user.role }}
-                            </span>
-                        </td>
-                        <td style="padding: 1rem;">
-                            <button class="btn btn-delete" disabled style="opacity: 0.5;">Manage</button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="relative pt-10 pb-24 px-6">
+    <div class="container mx-auto">
+        <!-- Header -->
+        <div class="flex items-start justify-between mb-12">
+            <div>
+                <h1 class="text-5xl font-satoshi font-black tracking-tight mb-4">Admin Command Center.</h1>
+                <p class="text-slate-400 font-medium max-w-2xl">Manage users, oversee materials, and control system-wide
+                    settings from this centralized dashboard.</p>
+            </div>
+            <a href="{{ url_for('admin_cleanup') }}"
+                class="flex items-center gap-3 px-6 py-3.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 transition-all font-black text-xs uppercase tracking-widest shadow-lg shadow-red-500/5">
+                <i class="fa-solid fa-fire-extinguisher"></i> Purge Center
+            </a>
         </div>
-    </div>
 
-    <div class="card">
-        <h3><i class="fas fa-file-alt"></i> All Files</h3>
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
-                <thead>
-                    <tr style="text-align: left; border-bottom: 1px solid var(--border-color);">
-                        <th style="padding: 1rem;">File</th>
-                        <th style="padding: 1rem;">Uploader</th>
-                        <th style="padding: 1rem;">Subject</th>
-                        <th style="padding: 1rem;">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for file in files %}
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                        <td style="padding: 1rem;">
-                            <a href="{{ url_for('download_file', file_id=file.id) }}" style="color: var(--primary);">
-                                {{ file.original_filename }}
-                            </a>
-                        </td>
-                        <td style="padding: 1rem;">{{ file.uploader_username }}</td>
-                        <td style="padding: 1rem;">{{ file.subject }}</td>
-                        <td style="padding: 1rem;">
-                            <form action="{{ url_for('delete_file', file_id=file.id) }}" method="post">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: User Management -->
+            <div class="lg:col-span-2 space-y-8">
+
+                <!-- Add User Card -->
+                <div class="p-8 rounded-[32px] bg-white/[0.03] border border-white/10 backdrop-blur-md">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
+                            <i class="fa-solid fa-user-plus text-primary"></i>
+                        </div>
+                        <h2 class="text-2xl font-black tracking-tight">Provision New User</h2>
+                    </div>
+
+                    <form action="{{ url_for('add_user') }}" method="POST"
+                        class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <div>
+                            <label
+                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 ml-1">Username</label>
+                            <input type="text" name="username" required
+                                class="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-white placeholder-slate-600 focus:outline-none focus:border-primary/50 transition-all"
+                                placeholder="e.g. jsmith2026">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 ml-1">Password</label>
+                            <input type="password" name="password" required minlength="6"
+                                class="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-white placeholder-slate-600 focus:outline-none focus:border-primary/50 transition-all"
+                                placeholder="••••••••">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 ml-1">System
+                                Role</label>
+                            <select name="role" required
+                                class="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-white focus:outline-none focus:border-primary/50 transition-all">
+                                <option value="student" class="bg-slate-900">Student</option>
+                                <option value="admin" class="bg-slate-900">Administrator</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-3 flex justify-end pt-2">
+                            <button type="submit"
+                                class="px-8 py-3 bg-primary text-white font-bold rounded-2xl hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20">
+                                Create Account
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Users List Card -->
+                <div class="p-8 rounded-[32px] bg-white/[0.03] border border-white/10 backdrop-blur-md">
+                    <div class="flex items-center justify-between mb-8">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                                <i class="fa-solid fa-users text-emerald-400"></i>
+                            </div>
+                            <h2 class="text-2xl font-black tracking-tight">Active Directory</h2>
+                        </div>
+                        <span
+                            class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold text-slate-500 uppercase tracking-widest">{{
+                            users|length }} Total</span>
+                    </div>
+
+                    <div class="overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr
+                                        class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 border-b border-white/5">
+                                        <th class="pb-5 pl-4">Identification</th>
+                                        <th class="pb-5">Role Identity</th>
+                                        <th class="pb-5 text-right pr-4">Permissions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/[0.02]">
+                                    {% for user in users %}
+                                    <tr class="group hover:bg-white/[0.01] transition-colors">
+                                        <td class="py-5 pl-4">
+                                            <div class="flex items-center gap-3">
+                                                <div
+                                                    class="w-8 h-8 rounded-full bg-gradient-to-tr from-slate-700 to-slate-800 flex items-center justify-center text-xs font-bold uppercase">
+                                                    {{ user.username[0] }}
+                                                </div>
+                                                <span class="font-bold text-slate-300">{{ user.username }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="py-5">
+                                            {% if user.role == 'admin' %}
+                                            <span
+                                                class="px-2.5 py-1 rounded-md bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">Admin</span>
+                                            {% else %}
+                                            <span
+                                                class="px-2.5 py-1 rounded-md bg-slate-500/10 text-slate-500 text-[10px] font-black uppercase tracking-widest border border-white/5">Student</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="py-5 text-right pr-4">
+                                            {% if user.username == 'DSCEAdmin' %}
+                                            <span
+                                                class="text-[9px] font-bold text-primary uppercase tracking-[0.2em] italic border border-primary/30 px-2 py-1 rounded-md">Master
+                                                ID</span>
+                                            {% elif user.id != session.get('user_id') %}
+                                            <form action="{{ url_for('delete_user', user_id=user.id) }}" method="post"
+                                                class="inline">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                                <button type="submit"
+                                                    class="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 opacity-60 hover:opacity-100 hover:bg-red-500/20 transition-all"
+                                                    onclick="return confirm('Immediately revoke access for {{ user.username }}?');">
+                                                    <i class="fa-solid fa-user-minus"></i>
+                                                </button>
+                                            </form>
+                                            {% else %}
+                                            <span
+                                                class="text-[9px] font-bold text-slate-700 uppercase tracking-widest italic pr-2">Current
+                                                Session</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Materials Snapshot -->
+            <div class="space-y-8">
+                <div class="p-8 rounded-[32px] bg-white/[0.03] border border-white/10 backdrop-blur-md h-full">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center">
+                            <i class="fa-solid fa-file-shield text-orange-400"></i>
+                        </div>
+                        <h2 class="text-2xl font-black tracking-tight">Recent Materials</h2>
+                    </div>
+
+                    <div class="space-y-4">
+                        {% for file in files[:15] %}
+                        <div
+                            class="p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all flex items-center justify-between group">
+                            <div class="min-w-0 flex-1 pr-4">
+                                <h4 class="text-xs font-bold text-slate-300 truncate mb-1">{{ file.original_filename }}
+                                </h4>
+                                <div
+                                    class="flex items-center gap-2 text-[9px] text-slate-600 font-bold uppercase tracking-widest">
+                                    <span>{{ file.uploader_username }}</span>
+                                    <span class="w-0.5 h-0.5 rounded-full bg-slate-700"></span>
+                                    <span>{% if file.subject %}{{ file.subject }}{% else %}General{% endif %}</span>
+                                </div>
+                            </div>
+                            <form action="{{ url_for('delete_file', file_id=file.id) }}" method="post"
+                                class="flex-shrink-0">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                                <button type="submit" class="btn btn-delete"
-                                    onclick="return confirm('Delete this file strictly?')">Delete</button>
+                                <button type="submit"
+                                    class="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 opacity-40 group-hover:opacity-100 hover:bg-red-500/20 transition-all flex items-center justify-center"
+                                    onclick="return confirm('Strictly delete material: {{ file.original_filename }}?');">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
                             </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                        </div>
+                        {% else %}
+                        <div class="py-10 text-center text-slate-600 font-medium">No materials logged in system.</div>
+                        {% endfor %}
+                    </div>
+
+                    {% if files|length > 15 %}
+                    <div class="mt-6 text-center pt-4 border-t border-white/5">
+                        <p class="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">Showing {{
+                            files[:15]|length }} of {{ files|length }} files</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </div>

@@ -1,124 +1,317 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="hero">
-    <h1>Share Knowledge, <br>Ace Your Exams.</h1>
-    <p style="color: var(--text-muted); font-size: 1.125rem; margin-bottom: 2rem;">
-        Securely access and share college notes, placement papers, and study materials.
-    </p>
+<!-- Animated Background Blobs -->
+<div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+    <div id="blob-1" class="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-primary/20 blur-[120px] rounded-full">
+    </div>
+    <div id="blob-2" class="absolute top-[20%] -right-[10%] w-[40%] h-[40%] bg-secondary/10 blur-[120px] rounded-full">
+    </div>
+    <div id="blob-3" class="absolute -bottom-[10%] left-[20%] w-[45%] h-[45%] bg-blue-500/10 blur-[120px] rounded-full">
+    </div>
+</div>
 
-    <form action="{{ url_for('home') }}" method="get" style="max-width: 800px; margin: 0 auto 3rem auto;">
+<div class="relative z-10">
+    <!-- Hero Section -->
+    <section class="container mx-auto px-6 pt-10 pb-48 text-center hero-entrance">
         <div
-            style="display: flex; gap: 0.75rem; margin-bottom: 1rem; background: var(--card-bg); padding: 0.5rem; border-radius: 0.75rem; border: 1px solid var(--border-color); backdrop-filter: blur(12px);">
-            <i class="fas fa-search" style="align-self: center; margin-left: 1rem; color: var(--text-muted);"></i>
-            <input type="text" name="q" class="form-control" placeholder="Search notes, papers, subjects..."
-                value="{{ request.args.get('q', '') }}"
-                style="border: none; background: transparent; flex: 1; padding-left: 0.5rem; box-shadow: none;">
-
-            <button type="button" class="btn" title="Filters"
-                style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-muted); padding: 0.5rem 0.75rem;"
-                onclick="const p = document.getElementById('filter-panel'); p.style.display = p.style.display === 'none' ? 'grid' : 'none'">
-                <i class="fas fa-sliders-h"></i>
-            </button>
-
-            <button type="submit" class="btn btn-primary" style="border-radius: 0.5rem;">
-                Search
-            </button>
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-md">
+            <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+            </span>
+            <span class="text-xs font-bold tracking-wider uppercase text-slate-400">v2.0 Architecture is Live</span>
         </div>
 
-        <div id="filter-panel"
-            style="display: none; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); background: var(--card-bg); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid var(--border-color); margin-top: 0.5rem; animation: slideDown 0.2s ease-out;">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-size: 0.85rem; color: var(--text-muted);">Subject</label>
-                <select name="subject" class="form-control">
-                    <option value="">All Subjects</option>
-                    <option value="Math" {% if request.args.get('subject')=='Math' %}selected{% endif %}>Math</option>
-                    <option value="CS" {% if request.args.get('subject')=='CS' %}selected{% endif %}>CS</option>
-                    <option value="Physics" {% if request.args.get('subject')=='Physics' %}selected{% endif %}>Physics
-                    </option>
-                </select>
-            </div>
+        <h1 class="text-6xl md:text-8xl font-satoshi font-black tracking-tight leading-[1.1] mb-8">
+            Notes that move at the <br>
+            <span class="bg-gradient-to-r from-primary via-secondary to-blue-500 bg-clip-text text-transparent">speed of
+                light.</span>
+        </h1>
 
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-size: 0.85rem; color: var(--text-muted);">Department</label>
-                <select name="dept" class="form-control">
-                    <option value="">All Departments</option>
-                    <option value="CSE" {% if request.args.get('dept')=='CSE' %}selected{% endif %}>CSE</option>
-                    <option value="ECE" {% if request.args.get('dept')=='ECE' %}selected{% endif %}>ECE</option>
-                    <option value="IT" {% if request.args.get('dept')=='IT' %}selected{% endif %}>IT</option>
-                    <option value="Cyber Security" {% if request.args.get('dept')=='Cyber Security' %}selected{% endif
-                        %}>Cyber Security</option>
-                    <option value="Civil" {% if request.args.get('dept')=='Civil' %}selected{% endif %}>Civil</option>
-                </select>
-            </div>
+        <p class="text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed font-medium">
+            NoteShare is the premium collaborative space for elite students.
+            Access materials, alerts, and events with a simplified, futuristic interface.
+        </p>
 
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-size: 0.85rem; color: var(--text-muted);">Category</label>
-                <select name="category" class="form-control">
-                    <option value="">All Categories</option>
-                    <option value="Lecture Notes" {% if request.args.get('category')=='Lecture Notes' %}selected{% endif
-                        %}>Notes</option>
-                    <option value="Question Paper" {% if request.args.get('category')=='Question Paper' %}selected{%
-                        endif %}>Papers</option>
-                    <option value="Placement Material" {% if request.args.get('category')=='Placement Material'
-                        %}selected{% endif %}>Placement</option>
-                    <option value="Assignment" {% if request.args.get('category')=='Assignment' %}selected{% endif %}>
-                        Assignment</option>
-                </select>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
+            <a href="{% if not session.get('user_id') %}{{ url_for('login') }}{% else %}{{ url_for('notes') }}{% endif %}"
+                class="group relative px-8 py-4 bg-primary text-white font-bold rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-[0_20px_40px_rgba(139,92,246,0.3)] overflow-hidden">
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000">
+                </div>
+                <span>{% if not session.get('user_id') %}Join the Network{% else %}Go to Materials{% endif %}</span>
+            </a>
+            <a href="#features"
+                class="px-8 py-4 rounded-2xl font-bold bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                Explore Features
+            </a>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="container mx-auto px-6 mb-48">
+        <div
+            class="grid grid-cols-2 md:grid-cols-4 gap-8 py-16 px-12 rounded-[40px] bg-white/5 border border-white/10 backdrop-blur-2xl">
+            <div class="text-center md:border-r border-white/10 stat-item">
+                <p class="text-4xl font-satoshi font-black mb-1">50K+</p>
+                <p class="text-sm font-bold text-slate-500 uppercase tracking-widest">Uploads</p>
+            </div>
+            <div class="text-center md:border-r border-white/10 stat-item">
+                <p class="text-4xl font-satoshi font-black mb-1">10K+</p>
+                <p class="text-sm font-bold text-slate-500 uppercase tracking-widest">Students</p>
+            </div>
+            <div class="text-center md:border-r border-white/10 stat-item">
+                <p class="text-4xl font-satoshi font-black mb-1">150+</p>
+                <p class="text-sm font-bold text-slate-500 uppercase tracking-widest">Colleges</p>
+            </div>
+            <div class="text-center stat-item">
+                <p class="text-4xl font-satoshi font-black mb-1">99%</p>
+                <p class="text-sm font-bold text-slate-500 uppercase tracking-widest">Uptime</p>
             </div>
         </div>
+    </section>
 
-        <!-- Auto-open if filters active -->
-        {% if request.args.get('subject') or request.args.get('dept') or request.args.get('category') %}
-        <script>document.getElementById('filter-panel').style.display = 'grid';</script>
+    <!-- Trust Badges -->
+    <section
+        class="container mx-auto px-6 mb-48 text-center opacity-40 grayscale group hover:grayscale-0 hover:opacity-100 transition-all duration-700">
+        <p class="text-xs font-bold uppercase tracking-[0.3em] text-slate-500 mb-10">Trusted across top engineering
+            institutions</p>
+        <div class="flex flex-wrap justify-center items-center gap-12 md:gap-24">
+            <span class="text-2xl font-black font-satoshi">IIT BOLLYWOOD</span>
+            <span class="text-2xl font-black font-satoshi">NIT RAIPUR</span>
+            <span class="text-2xl font-black font-satoshi">BITS PILANI</span>
+            <span class="text-2xl font-black font-satoshi">VIT WELLORE</span>
+            <span class="text-2xl font-black font-satoshi">SRM UNIV</span>
+        </div>
+    </section>
+
+    <!-- Features Bento Grid -->
+    <section id="features" class="container mx-auto px-6 mb-48">
+        <h2 class="text-4xl font-satoshi font-black mb-16 text-center">Engineered for Focus.</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div
+                class="md:col-span-2 p-10 rounded-[40px] bg-gradient-to-br from-white/[0.08] to-transparent border border-white/10 feature-card overflow-hidden group">
+                <div class="relative z-10">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center mb-6 border border-primary/30">
+                        <i class="fa-solid fa-bolt-lightning text-xl text-primary"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Instant Sync</h3>
+                    <p class="text-slate-400 font-medium">Your notes, updated across devices instantly. Never miss a
+                        departmental update with real-time push synchronization.</p>
+                </div>
+                <div
+                    class="absolute -right-20 -bottom-20 w-64 h-64 bg-primary/20 blur-[80px] rounded-full group-hover:bg-primary/30 transition-all duration-700">
+                </div>
+            </div>
+
+            <div class="p-10 rounded-[40px] bg-white/[0.04] border border-white/10 feature-card">
+                <div
+                    class="w-12 h-12 rounded-2xl bg-secondary/20 flex items-center justify-center mb-6 border border-secondary/30">
+                    <i class="fa-solid fa-shield-halved text-xl text-secondary"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-4">Encrypted</h3>
+                <p class="text-slate-400 font-medium">Military-grade protection for institutional circulars.</p>
+            </div>
+
+            <div class="p-10 rounded-[40px] bg-white/[0.04] border border-white/10 feature-card">
+                <div
+                    class="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center mb-6 border border-blue-500/30">
+                    <i class="fa-solid fa-terminal text-xl text-blue-400"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-4">API First</h3>
+                <p class="text-slate-400 font-medium">Headless architecture for sub-second page loads.</p>
+            </div>
+
+            <div
+                class="md:col-span-2 p-10 rounded-[40px] bg-gradient-to-bl from-white/[0.08] to-transparent border border-white/10 feature-card overflow-hidden group">
+                <div class="relative z-10">
+                    <div class="w-12 h-12 rounded-2xl bg-accent/20 flex items-center justify-center mb-6 border border-accent/20"
+                        style="--accent: #06b6d4;">
+                        <i class="fa-solid fa-calendar-days text-xl text-cyan-400"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Event Intelligence</h3>
+                    <p class="text-slate-400 font-medium">Smart scheduling for Inter-college fests. Get personalized
+                        suggestions based on your department and semester interactions.</p>
+                </div>
+                <div
+                    class="absolute -left-20 -bottom-20 w-64 h-64 bg-cyan-500/10 blur-[80px] rounded-full group-hover:bg-cyan-500/20 transition-all duration-700">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Latest Uploads Section -->
+    <section class="container mx-auto px-6 mb-48">
+        <div class="flex items-end justify-between mb-16">
+            <div>
+                <h2 class="text-4xl font-satoshi font-black mb-4">Latest Contributions</h2>
+                <p class="text-slate-400 font-medium">The heartbeat of the community. Newest materials added.</p>
+            </div>
+            <a href="{{ url_for('notes') }}"
+                class="text-sm font-bold text-primary hover:text-white transition-colors flex items-center gap-2 mb-2">
+                View All Materials <i class="fa-solid fa-arrow-right"></i>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="latest-files-grid">
+            {% for file in latest_files %}
+            <div class="card group cursor-pointer p-8 rounded-[32px] bg-white/[0.03] border border-white/5 hover:border-white/10 hover:bg-white/[0.06] transition-all duration-500"
+                data-url="{{ url_for('view_file_page', file_id=file.id) }}"
+                onclick="window.location.href=this.getAttribute('data-url');" role="button">
+                <div class="flex items-center justify-between mb-8">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:scale-110 group-hover:border-primary/30 transition-all duration-500">
+                        <i
+                            class="fa-solid {{ file.original_filename|file_icon }} text-lg group-hover:text-primary transition-colors"></i>
+                    </div>
+                    <div class="flex gap-2">
+                        <span
+                            class="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">{{
+                            file.dept }}</span>
+                        <span
+                            class="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase tracking-wider">{{
+                            file.category }}</span>
+                    </div>
+                </div>
+
+                <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">{{ file.original_filename
+                    }}</h3>
+                <p class="text-slate-500 text-sm font-medium mb-10"><i class="fa-solid fa-book-open text-xs mr-2"></i>
+                    {{ file.subject }}</p>
+
+                <div class="flex items-center justify-between pt-6 border-t border-white/5">
+                    <span class="text-xs font-bold text-slate-600 uppercase tracking-widest">{{
+                        file.upload_date.strftime('%Y-%m-%d') if file.upload_date is not string else
+                        file.upload_date[:10] }}</span>
+                    <i
+                        class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-700 group-hover:text-white transition-colors"></i>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if has_more %}
+        <div class="mt-16 text-center">
+            <button
+                class="px-10 py-4 rounded-2xl font-bold bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all"
+                onclick="loadMoreHome()" id="load-more-btn">
+                Load More Materials
+            </button>
+        </div>
         {% endif %}
-    </form>
-</div>
+    </section>
 
-<div class="grid">
-    {% for file in files %}
-    <div class="card" data-url="{{ url_for('view_file_page', file_id=file.id) }}"
-        onclick="window.location.href=this.getAttribute('data-url');" style="cursor: pointer;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-            <div class="file-icon-box">
-                <i class="fas {{ file.original_filename|file_icon }}" style="color: var(--primary);"></i>
+    <!-- Contribution CTA -->
+    <section class="container mx-auto px-6 mb-48">
+        <div
+            class="relative p-12 md:p-20 rounded-[48px] overflow-hidden bg-gradient-to-br from-primary/20 via-primary/5 to-transparent border border-white/10 text-center">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] rounded-full"></div>
+            <div class="absolute bottom-0 left-0 w-64 h-64 bg-secondary/10 blur-[100px] rounded-full"></div>
+
+            <div class="relative z-10 max-w-2xl mx-auto">
+                <div
+                    class="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mb-8 mx-auto border border-white/10">
+                    <i class="fa-solid fa-paper-plane text-2xl text-primary"></i>
+                </div>
+                <h2 class="text-4xl font-satoshi font-black mb-6">Contribute to the Network.</h2>
+                <p class="text-xl text-slate-400 font-medium mb-10">
+                    If you have any study material, notes, or previous year questions, help your peers by sending them
+                    to us.
+                </p>
+                <div
+                    class="inline-flex items-center gap-4 px-8 py-4 rounded-2xl bg-white text-black font-black hover:bg-slate-200 transition-all cursor-pointer">
+                    <i class="fa-solid fa-envelope"></i>
+                    <span>Mail us : noteshare.official@gmail.com</span>
+                </div>
             </div>
-
-            {% if session.get('user_id') == file.uploader_id or session.get('role') == 'admin' or
-            session.get('username') == file.uploader_username %}
-            <form action="{{ url_for('delete_file', file_id=file.id) }}" method="post" style="z-index: 10;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                <button type="submit" class="btn btn-delete" style="padding: 0.4rem;"
-                    onclick="event.stopPropagation(); return confirm('Are you sure?')">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </form>
-            {% endif %}
         </div>
-
-        <h3 title="{{ file.original_filename }}">{{ file.original_filename }}</h3>
-
-        <div class="card-meta">
-            <span class="tag dept">{{ file.dept }}</span>
-            <span class="tag cat">{{ file.category }}</span>
-        </div>
-
-        <div
-            style="margin-top: auto; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--glass-border); padding-top: 1rem;">
-            <span><i class="fas fa-book-open" style="margin-right: 0.25rem;"></i> {{ file.subject }}</span>
-            <span>{{ file.upload_date.strftime('%Y-%m-%d') if file.upload_date is not string else file.upload_date[:10]
-                }}</span>
-        </div>
-    </div>
-    {% else %}
-    <div style="grid-column: 1 / -1; text-align: center; padding: 6rem 1rem; color: var(--text-muted);">
-        <div
-            style="background: var(--glass-bg); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto; border: 1px solid var(--glass-border);">
-            <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: var(--primary);"></i>
-        </div>
-        <h3 style="color: white; margin-bottom: 0.5rem;">No files found</h3>
-        <p>Be the first student to share knowledge!</p>
-    </div>
-    {% endfor %}
+    </section>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Force immediate visibility if fonts fail or script hangs
+        gsap.set('.hero-entrance > *', { opacity: 0 }); // Hide initially via JS only
+
+        // Hero Entrances
+        gsap.to('.hero-entrance > *', {
+            y: 0,
+            opacity: 1,
+            duration: 1.2,
+            stagger: 0.15,
+            ease: 'power4.out',
+            delay: 0.6,
+            startAt: { y: 40, opacity: 0 }
+        });
+
+        // Floating Blobs Animation
+        gsap.to('#blob-1', {
+            x: '100vw',
+            y: '50vh',
+            duration: 20,
+            repeat: -1,
+            yoyo: true,
+            ease: 'none'
+        });
+        gsap.to('#blob-2', {
+            x: '-80vw',
+            y: '20vh',
+            duration: 25,
+            repeat: -1,
+            yoyo: true,
+            ease: 'none'
+        });
+        gsap.to('#blob-3', {
+            x: '30vw',
+            y: '-60vh',
+            duration: 18,
+            repeat: -1,
+            yoyo: true,
+            ease: 'none'
+        });
+
+        // Scroll Reveal Animations
+        gsap.utils.toArray('.feature-card, .stat-item, .card').forEach(el => {
+            gsap.from(el, {
+                scrollTrigger: {
+                    trigger: el,
+                    start: 'top 85%',
+                    toggleActions: 'play none none none'
+                },
+                y: 30,
+                opacity: 0,
+                duration: 1,
+                ease: 'power3.out'
+            });
+        });
+    });
+
+    let homeCurrentPage = Number("{{ page }}");
+    function loadMoreHome() {
+        homeCurrentPage += 1;
+        fetch(`${window.location.pathname}?page=${homeCurrentPage}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(res => res.text())
+            .then(html => {
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = html;
+                const oldGrid = document.getElementById('latest-files-grid');
+                if (!oldGrid) return;
+
+                const cards = wrapper.querySelectorAll('.home-upload-card');
+                cards.forEach(card => oldGrid.appendChild(card));
+
+                const dataDiv = wrapper.querySelector('#has-more-data');
+                const btn = document.getElementById('load-more-btn');
+                if (dataDiv && btn && dataDiv.getAttribute('data-has-more') !== 'true') {
+                    btn.style.display = 'none';
+                }
+            })
+            .catch(() => {
+                homeCurrentPage -= 1;
+            });
+    }
+</script>
 {% endblock %}

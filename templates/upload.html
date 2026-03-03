@@ -1,132 +1,171 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="auth-container" style="max-width: 600px;">
-    <div class="card">
-        <h2 style="margin-bottom: 2rem;">Upload Material</h2>
+<div class="relative pt-8 pb-16 px-6">
+    <div class="container mx-auto max-w-2xl">
 
-        <form method="post" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-            <div class="form-group">
-                <label class="form-label">File</label>
-                <div style="border: 2px dashed var(--border-color); padding: 2rem; text-align: center; border-radius: 0.5rem; cursor: pointer;"
-                    onclick="document.getElementById('file').click()">
-                    <i class="fas fa-cloud-upload-alt fa-2x" style="color: var(--primary); margin-bottom: 1rem;"></i>
-                    <p>Click to select or drag file here</p>
-                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">PDF, DOC, PPT (Max
-                        30MB)</p>
-                </div>
-                <!-- Hidden input for file selection -->
-                <input type="file" name="file" id="file" class="form-control" style="display: none;"
-                    onchange="checkFileSize(this)">
-                <p id="filename-display" class="text-center mt-4" style="font-weight: 500;"></p>
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <div
+                class="inline-flex items-center justify-center w-14 h-14 bg-primary/20 rounded-2xl border border-primary/30 mb-5">
+                <i class="fa-solid fa-cloud-arrow-up text-primary text-2xl"></i>
+            </div>
+            <h1 class="text-4xl font-satoshi font-black tracking-tight mb-2">Upload Material</h1>
+            <p class="text-slate-400 font-medium">Help your fellow students by sharing quality study materials.</p>
+        </div>
 
-                <div id="link-section" style="display: none; margin-top: 1rem; animation: fadeIn 0.3s;">
-                    <div class="alert alert-warning"
-                        style="background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; color: #ffc107; font-size: 0.9rem;">
-                        <i class="fas fa-exclamation-triangle"></i> File size exceeds 30MB. You can upload in your
-                        google drive share link here.
+        <!-- Card -->
+        <div
+            class="p-8 rounded-[32px] bg-white/[0.03] border border-white/10 backdrop-blur-md shadow-[0_30px_80px_rgba(0,0,0,0.4)]">
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+                <!-- Drag & Drop Zone -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">
+                        File (PDF, DOC, Images — max 30MB)
+                    </label>
+                    <div id="drop-zone" role="button" tabindex="0"
+                        class="relative border-2 border-dashed border-white/10 rounded-2xl py-14 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
+                        onclick="document.getElementById('file-input').click()"
+                        onkeypress="if(event.key==='Enter') document.getElementById('file-input').click()"
+                        ondragover="event.preventDefault(); this.classList.add('border-primary/60','bg-primary/10');"
+                        ondragleave="this.classList.remove('border-primary/60','bg-primary/10');"
+                        ondrop="event.preventDefault(); this.classList.remove('border-primary/60','bg-primary/10'); document.getElementById('file-input').files = event.dataTransfer.files; handleFile(document.getElementById('file-input'));">
+                        <i class="fa-solid fa-file-circle-plus text-4xl text-primary/60 mb-4 block"></i>
+                        <p class="font-bold text-white mb-1">Drag & drop your file here</p>
+                        <p class="text-sm text-slate-500">or click to browse from device</p>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Google Drive Share Link</label>
-                        <input type="url" name="drive_link" id="drive_link" class="form-control"
+                    <input type="file" name="file" id="file-input" class="hidden" onchange="handleFile(this)">
+                    <p id="filename-display" class="text-center mt-3 text-sm font-bold text-primary min-h-[1.5rem]"></p>
+
+                    <!-- Drive Link fallback -->
+                    <div id="link-section" class="hidden mt-4">
+                        <div class="flex items-start gap-3 p-4 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
+                            <i class="fa-solid fa-circle-info text-primary mt-0.5 flex-shrink-0"></i>
+                            <p class="text-sm text-slate-300">File exceeds 30MB. Please provide a Google Drive or Cloud
+                                link instead.</p>
+                        </div>
+                        <label for="drive_link"
+                            class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Drive / Cloud
+                            Share Link</label>
+                        <input type="url" name="drive_link" id="drive_link"
+                            class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-white placeholder-slate-600 font-medium focus:outline-none focus:border-primary/50 transition-all"
                             placeholder="https://drive.google.com/...">
                     </div>
                 </div>
 
-                <script>
-                    function checkFileSize(input) {
-                        const fileDisplay = document.getElementById('filename-display');
-                        const linkSection = document.getElementById('link-section');
-                        const driveInput = document.getElementById('drive_link');
+                <!-- Form Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label for="subject"
+                            class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Subject
+                            Title</label>
+                        <input type="text" id="subject" name="subject"
+                            class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-white placeholder-slate-600 font-medium focus:outline-none focus:border-primary/50 transition-all"
+                            placeholder="e.g. Data Structures" required>
+                    </div>
 
-                        if (input.files && input.files[0]) {
-                            const fileSize = input.files[0].size / 1024 / 1024; // in MB
+                    <div>
+                        <label for="dept"
+                            class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Department</label>
+                        <select id="dept" name="dept" required
+                            class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-white font-medium focus:outline-none focus:border-primary/50 transition-all">
+                            <option value="CSE" class="bg-slate-900">CSE</option>
+                            <option value="ECE" class="bg-slate-900">ECE</option>
+                            <option value="EEE" class="bg-slate-900">EEE</option>
+                            <option value="MECH" class="bg-slate-900">MECH</option>
+                            <option value="CIVIL" class="bg-slate-900">CIVIL</option>
+                            <option value="IT" class="bg-slate-900">IT</option>
+                            <option value="AI&DS" class="bg-slate-900">AI&DS</option>
+                            <option value="Cyber Security" class="bg-slate-900">Cyber Security</option>
+                            <option value="Other" class="bg-slate-900">Other</option>
+                        </select>
+                    </div>
 
-                            if (fileSize > 30) {
-                                // File too big
-                                input.value = ''; // Clear input
-                                fileDisplay.innerText = "File too large (Max 30MB). Please use the link option below.";
-                                fileDisplay.style.color = "#ef4444";
+                    <div>
+                        <label for="semester"
+                            class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Semester</label>
+                        <select id="semester" name="semester" required
+                            class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-white font-medium focus:outline-none focus:border-primary/50 transition-all">
+                            {% for i in range(1, 9) %}
+                            <option value="{{ i }}" class="bg-slate-900">Semester {{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-                                linkSection.style.display = 'block';
-                                input.required = false;
-                                driveInput.required = true;
-                            } else {
-                                // File OK
-                                fileDisplay.innerText = input.files[0].name;
-                                fileDisplay.style.color = "var(--text-main)";
-
-                                linkSection.style.display = 'none';
-                                input.required = true;
-                                driveInput.required = false;
-                                driveInput.value = ''; // Clear link if they go back to file
-                            }
-                        }
-                    }
-                </script>
-            </div>
-
-            <div class="grid" style="gap: 1rem; grid-template-columns: 1fr 1fr;">
-                <div class="form-group">
-                    <label class="form-label">Subject</label>
-                    <input type="text" name="subject" class="form-control" placeholder="e.g. Mathematics" required>
+                    <div>
+                        <label for="category"
+                            class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Category</label>
+                        <select id="category" name="category" required
+                            class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-white font-medium focus:outline-none focus:border-primary/50 transition-all">
+                            <option value="Lecture Notes" class="bg-slate-900">Lecture Notes</option>
+                            <option value="Question Paper" class="bg-slate-900">Question Paper</option>
+                            <option value="Assignment" class="bg-slate-900">Assignment</option>
+                            <option value="Lab Record" class="bg-slate-900">Lab Record</option>
+                            <option value="Placement Material" class="bg-slate-900">Placement Material</option>
+                            <option value="Syllabus" class="bg-slate-900">Syllabus</option>
+                            <option value="Project Report" class="bg-slate-900">Project Report</option>
+                            <option value="Handwritten Notes" class="bg-slate-900">Handwritten Notes</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Department</label>
-                    <select name="dept" class="form-control" required>
-                        <option value="CSE">CSE</option>
-                        <option value="ECE">ECE</option>
-                        <option value="EEE">EEE</option>
-                        <option value="MECH">MECH</option>
-                        <option value="CIVIL">CIVIL</option>
-                        <option value="IT">IT</option>
-                        <option value="AI&DS">AI&DS</option>
-                        <option value="Cyber Security">Cyber Security</option>
-                        <option value="Other">Other</option>
-                    </select>
+                <!-- Description -->
+                <div>
+                    <label for="description"
+                        class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Description
+                        (Optional)</label>
+                    <textarea id="description" name="description" rows="3"
+                        class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-white placeholder-slate-600 font-medium focus:outline-none focus:border-primary/50 transition-all resize-none"
+                        placeholder="Briefly describe what this file contains..."></textarea>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Semester</label>
-                    <select name="semester" class="form-control" required>
-                        <option value="1">Semester 1</option>
-                        <option value="2">Semester 2</option>
-                        <option value="3">Semester 3</option>
-                        <option value="4">Semester 4</option>
-                        <option value="5">Semester 5</option>
-                        <option value="6">Semester 6</option>
-                        <option value="7">Semester 7</option>
-                        <option value="8">Semester 8</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Category</label>
-                    <select name="category" class="form-control" required>
-                        <option value="Lecture Notes">Lecture Notes</option>
-                        <option value="Question Paper">Question Paper</option>
-                        <option value="Assignment">Assignment</option>
-                        <option value="Lab Record">Lab Record</option>
-                        <option value="Placement Material">Placement Material</option>
-                        <option value="Syllabus">Syllabus</option>
-                        <option value="Project Report">Project Report</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-top: 1rem;">
-                <label class="form-label">Description (Optional)</label>
-                <textarea name="description" class="form-control" rows="3"
-                    placeholder="Add a brief description about the notes..."></textarea>
-            </div>
-
-            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
-                <i class="fas fa-upload"></i> Upload File
-            </button>
-        </form>
+                <!-- Submit -->
+                <button type="submit"
+                    class="group relative w-full py-4 bg-primary text-white font-bold text-lg rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_16px_40px_rgba(139,92,246,0.3)] overflow-hidden">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700">
+                    </div>
+                    <span class="relative flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-rocket-launch"></i> Publish to NoteShare
+                    </span>
+                </button>
+            </form>
+        </div>
     </div>
 </div>
+
+<script>
+    function handleFile(input) {
+        const fileDisplay = document.getElementById('filename-display');
+        const linkSection = document.getElementById('link-section');
+        const driveInput = document.getElementById('drive_link');
+        const dropZone = document.getElementById('drop-zone');
+
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const sizeMB = file.size / 1024 / 1024;
+
+            if (sizeMB > 30) {
+                input.value = '';
+                fileDisplay.textContent = '🛑 File too large (max 30MB) — use link below';
+                fileDisplay.className = 'text-center mt-3 text-sm font-bold text-red-400 min-h-[1.5rem]';
+                linkSection.classList.remove('hidden');
+                input.required = false;
+                driveInput.required = true;
+                dropZone.classList.add('border-red-500/50');
+                dropZone.classList.remove('border-white/10');
+            } else {
+                fileDisplay.textContent = `✅ ${file.name} (${sizeMB.toFixed(1)} MB)`;
+                fileDisplay.className = 'text-center mt-3 text-sm font-bold text-primary min-h-[1.5rem]';
+                linkSection.classList.add('hidden');
+                input.required = true;
+                if (driveInput) { driveInput.required = false; driveInput.value = ''; }
+                dropZone.classList.remove('border-red-500/50');
+                dropZone.classList.add('border-primary/50');
+            }
+        }
+    }
+</script>
 {% endblock %}

@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="relative min-h-screen pt-8 pb-32 px-6">
+
+    <!-- Page Header -->
+    <div class="container mx-auto text-center mb-24">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8">
+            <i class="fa-solid fa-globe text-red-400"></i>
+            <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Inter-Institutional</span>
+        </div>
+        <h1 class="text-5xl md:text-7xl font-satoshi font-black tracking-tight mb-6">Inter College Events.</h1>
+        <p class="text-lg text-slate-400 max-w-xl mx-auto font-medium">Connect, compete, and collaborate across
+            colleges. Explore technical fests, cultural events, and competitions.</p>
+        {% if session.get('role') == 'admin' %}
+        <div class="mt-10">
+            <a href="{{ url_for('upload_event', type='inter') }}"
+                class="inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-bold bg-red-500 text-white hover:scale-105 active:scale-95 transition-all shadow-lg shadow-red-500/20">
+                <i class="fa-solid fa-circle-plus"></i> Host an Event
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Search Bar -->
+    <div class="container mx-auto max-w-3xl mb-20">
+        <form id="search-form" action="{{ url_for('inter_events_route') }}" method="get">
+            <div
+                class="flex items-center p-2 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl focus-within:border-red-400/40 transition-all">
+                <i class="fa-solid fa-magnifying-glass ml-6 text-red-400/60"></i>
+                <input type="text" name="q"
+                    class="bg-transparent border-none text-lg py-4 px-6 w-full text-white placeholder-slate-600 font-medium focus:outline-none"
+                    placeholder="Search events by title or keywords..." value="{{ request.args.get('q', '') }}">
+                <button type="submit"
+                    class="px-8 py-4 bg-red-500 text-white font-bold rounded-2xl hover:scale-105 active:scale-95 transition-all">
+                    Search
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Events Grid -->
+    <div class="container mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="inter-grid">
+        {% for event in events %}
+        <div
+            class="group rounded-[32px] bg-white/[0.03] border border-white/5 hover:border-white/10 hover:bg-white/[0.06] transition-all duration-500 overflow-hidden event-card-item">
+            {% if event.image_filename %}
+            <div class="relative h-56 overflow-hidden">
+                <img src="{{ url_for('event_image', event_id=event.id) }}" alt="{{ event.title }}" loading="lazy"
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                <span
+                    class="absolute bottom-4 left-4 px-3 py-1 rounded-full bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest">Inter-College</span>
+            </div>
+            {% else %}
+            <div class="h-24 bg-gradient-to-r from-red-500/10 to-transparent flex items-center px-8">
+                <i class="fa-solid fa-globe text-red-400 text-3xl opacity-30"></i>
+            </div>
+            {% endif %}
+
+            <div class="p-8">
+                <div class="flex items-start justify-between mb-5">
+                    <h3 class="text-xl font-bold text-white leading-snug flex-1 mr-4">{{ event.title }}</h3>
+                    {% if session.get('role') == 'admin' or session.get('username') == event.uploader_username %}
+                    <form action="{{ url_for('delete_event', event_id=event.id) }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <button type="submit"
+                            class="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors flex items-center justify-center flex-shrink-0"
+                            onclick="return confirm('Delete this event?');">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+
+                <div class="space-y-2 mb-6">
+                    <p class="text-slate-500 text-sm flex items-center gap-3">
+                        <i class="fa-solid fa-calendar-check text-red-400 w-4"></i>
+                        {{ event.event_date }}
+                    </p>
+                    {% if event.venue %}
+                    <p class="text-slate-500 text-sm flex items-center gap-3">
+                        <i class="fa-solid fa-location-dot text-red-400 w-4"></i>
+                        {{ event.venue }}
+                    </p>
+                    {% endif %}
+                    {% if event.organizer %}
+                    <p class="text-slate-500 text-sm flex items-center gap-3">
+                        <i class="fa-solid fa-building-columns text-red-400 w-4"></i>
+                        {{ event.organizer }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <p class="text-slate-400 text-sm leading-relaxed mb-8"
+                    style="display:-webkit-box;-webkit-line-clamp:3;line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
+                    {{ event.description }}
+                </p>
+
+                <div class="pt-6 border-t border-white/5">
+                    {% if event.register_link %}
+                    <a href="{{ event.register_link }}" target="_blank"
+                        class="flex items-center justify-center gap-3 w-full py-3.5 rounded-2xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors">
+                        <i class="fa-solid fa-ticket"></i> Registration & Info
+                    </a>
+                    {% else %}
+                    <span class="flex items-center justify-center gap-2 text-slate-600 text-sm font-medium py-3.5">
+                        <i class="fa-solid fa-link-slash"></i> No registration link
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-full py-48 text-center bg-white/[0.02] rounded-[40px] border border-white/5">
+            <div
+                class="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 mx-auto mb-6">
+                <i class="fa-solid fa-calendar-xmark text-slate-500 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-400">No Events Found</h3>
+            <p class="text-slate-600 font-medium mt-2">Be the first to host an inter-college fest!</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if has_more %}
+    <div id="load-more-container" class="container mx-auto text-center mt-20">
+        <button onclick="loadMore()"
+            class="px-10 py-4 rounded-2xl font-bold bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+            Load More Events
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    let currentPage = Number("{{ page }}");
+    function loadMore() {
+        currentPage += 1;
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('page', currentPage);
+        fetch(`${window.location.pathname}?${urlParams.toString()}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.text())
+            .then(html => {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const newGrid = doc.getElementById('inter-grid');
+                const oldGrid = document.getElementById('inter-grid');
+                if (newGrid && oldGrid) Array.from(newGrid.children).forEach(c => oldGrid.appendChild(c));
+                if (!doc.getElementById('load-more-container')) document.getElementById('load-more-container')?.remove();
+            }).catch(() => currentPage--);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        gsap.from('.event-card-item', {
+            scrollTrigger: { trigger: '#inter-grid', start: 'top 85%' },
+            y: 30, opacity: 0, duration: 0.8, stagger: 0.1, ease: 'power3.out'
+        });
+    });
+</script>
+{% endblock %}

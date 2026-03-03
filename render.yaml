@@ -7,18 +7,14 @@ services:
     startCommand: gunicorn app:app
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: notes-db
-          property: connectionString
+        sync: false        # <- You will paste your Neon URL in Render dashboard manually
       - key: CLOUDINARY_CLOUD_NAME
-        value: dgwfdlwcw
+        value: dldydrqdb
       - key: CLOUDINARY_API_KEY
-        value: 498172598213555
+        value: 756177661263517
       - key: CLOUDINARY_API_SECRET
-        value: cWEMdSyhMtbD2krGk89oEiBRTNQ
+        value: PcA6CTww57imc8HAWi2tsN033eo
       - key: SECRET_KEY
         generateValue: true
-
-databases:
-  - name: notes-db
-    plan: free
+      - key: FIREBASE_CREDENTIALS_JSON
+        sync: false        # <- Paste the JSON content of your Firebase service account key here

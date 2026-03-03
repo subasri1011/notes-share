@@ -1,320 +1,175 @@
 {% extends 'base.html' %}
 
-{% block title %}View {{ file.original_filename }}{% endblock %}
-
 {% block content %}
-<div class="container-fluid"
-    style="padding-top: 1rem; max-width: 1400px; margin: 0 auto; padding-left: 2rem; padding-right: 2rem;">
-    <div style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
-        <a href="{{ url_for('home') }}" class="btn"
-            style="background: rgba(255,255,255,0.05); color: var(--text-muted);">
-            <i class="fas fa-arrow-left"></i> Back
-        </a>
-        <div style="display: flex; gap: 1rem;">
-            <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-download">
-                <i class="fas fa-download"></i> Download
+<div class="relative pt-8 pb-16 px-6">
+    <div class="container mx-auto max-w-3xl">
+
+        <!-- Top Navigation -->
+        <div class="flex items-center justify-between mb-10">
+            <a href="{{ url_for('notes') }}"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white transition-all font-bold text-sm">
+                <i class="fa-solid fa-arrow-left-long"></i> Back to Materials
+            </a>
+            <a href="{{ url_for('download_file', file_id=file.id) }}"
+                class="group relative flex items-center gap-3 px-6 py-2.5 bg-primary text-white font-bold rounded-2xl hover:brightness-110 active:scale-95 transition-all shadow-[0_10px_30px_rgba(139,92,246,0.3)] overflow-hidden">
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700">
+                </div>
+                <i class="fa-solid fa-download relative"></i>
+                <span class="relative">Download</span>
             </a>
         </div>
-    </div>
 
-    <div class="card" style="min-height: 80vh; padding: 0; overflow: hidden; display: flex; flex-direction: column;">
-        <div style="padding: 1rem 1.75rem; border-bottom: 1px solid var(--glass-border); background: rgba(0,0,0,0.2);">
-            <h2 style="font-size: 1.25rem;">{{ file.original_filename }}</h2>
-            {% if file.description %}
-            <p style="color: var(--text-muted); margin-top: 0.5rem; font-size: 0.95rem;">{{ file.description }}</p>
-            {% endif %}
-        </div>
+        <!-- Main Card -->
+        <div class="p-8 rounded-[32px] bg-white/[0.03] border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.4)]">
 
-        <div style="flex: 1; position: relative; display: flex; flex-direction: column; background: #2d2d2d;">
-            {% if file.file_type in ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xlsx', 'xls', 'csv'] %}
-            <!-- Universal Document Previewer -->
-            <div id="preview-toolbar"
-                style="padding: 0.5rem 1rem; background: #1a1a1a; display: flex; gap: 1rem; align-items: center; border-bottom: 1px solid #444;">
-                <span style="color: #ccc; font-size: 0.85rem;"><i class="fas fa-eye"></i> Document Preview</span>
-                <div style="flex: 1;"></div>
-                <button onclick="togglePreviewMode()" id="toggle-preview-btn" class="btn"
-                    style="padding: 3px 10px; font-size: 0.75rem; background: #444; color: white; border: none;">
-                    <i class="fas fa-sync"></i> Try Alternative Viewer
-                </button>
-            </div>
-
-            <div id="preview-main-container" style="flex: 1; display: flex; flex-direction: column;">
-                <!-- Primary Viewer: Direct Render -->
-                <div id="direct-viewer" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-                    {% if file.file_type == 'pdf' %}
-                    <div id="pdf-container"
-                        style="flex: 1; overflow-y: auto; background: #525659; padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                        <div id="pdf-loading" style="color: white; margin-top: 2rem;">
-                            <i class="fas fa-circle-notch fa-spin"></i> Loading PDF...
-                        </div>
-                    </div>
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-                    <script>
-                        window.pdfjsLib = window['pdfjs-dist/build/pdf'];
-                        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-                        function loadPdfDirectly() {
-                            const container = document.getElementById('pdf-container');
-                            const loading = document.getElementById('pdf-loading');
-                            const jsonUrl = "{{ url_for('get_file_base64', file_id=file.id) }}";
-
-                            fetch(jsonUrl)
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.error) throw new Error(data.error);
-                                    const raw = atob(data.data);
-                                    const uint8Array = new Uint8Array(raw.length);
-                                    for (let i = 0; i < raw.length; i++) uint8Array[i] = raw.charCodeAt(i);
-                                    return pdfjsLib.getDocument({ data: uint8Array }).promise;
-                                })
-                                .then(pdf => {
-                                    loading.style.display = 'none';
-                                    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-                                        pdf.getPage(pageNum).then(page => {
-                                            const scale = 1.5;
-                                            const viewport = page.getViewport({ scale: scale });
-                                            const canvas = document.createElement('canvas');
-                                            canvas.height = viewport.height;
-                                            canvas.width = viewport.width;
-                                            canvas.style.marginBottom = "20px";
-                                            canvas.style.boxShadow = "0 4px 10px rgba(0,0,0,0.5)";
-                                            container.appendChild(canvas);
-                                            page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport });
-                                        });
-                                    }
-                                })
-                                .catch(err => {
-                                    console.error('PDF Render Error:', err);
-                                    loading.innerHTML = '<div style="text-align: center; color: #ff6b6b;"><i class="fas fa-exclamation-triangle"></i> Preview failed. Path: ' + err.message + '</div>';
-                                    // Auto switch to External Viewer if direct fails
-                                    setTimeout(togglePreviewMode, 1000);
-                                });
-                        }
-                        loadPdfDirectly();
-                    </script>
-
-                    {% elif file.file_type in ['doc', 'docx'] %}
-                    <div id="docx-viewer"
-                        style="flex: 1; overflow-y: auto; background: #525659; padding: 2rem; display: flex; justify-content: center;">
-                        <div id="docx-container"
-                            style="background: white; width: 100%; max-width: 900px; padding: 3rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: #000; min-height: 1000px; margin-bottom: 2rem;">
-                            <div style="text-align: center; color: #666;"><i class="fas fa-circle-notch fa-spin"></i>
-                                Loading document...</div>
-                        </div>
-                    </div>
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-                    <script>
-                        function loadDocxDirectly() {
-                            fetch('{{ url_for("get_file_base64", file_id=file.id) }}')
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.error) throw new Error(data.error);
-                                    const raw = atob(data.data);
-                                    const uint8Array = new Uint8Array(raw.length);
-                                    for (let i = 0; i < raw.length; i++) uint8Array[i] = raw.charCodeAt(i);
-                                    return mammoth.convertToHtml({ arrayBuffer: uint8Array.buffer });
-                                })
-                                .then(result => {
-                                    const container = document.getElementById("docx-container");
-                                    container.innerHTML = result.value;
-                                    container.querySelectorAll('img').forEach(img => {
-                                        img.style.maxWidth = '100%'; img.style.height = 'auto';
-                                        img.style.display = 'block'; img.style.margin = '1.5rem auto';
-                                    });
-                                })
-                                .catch(err => {
-                                    console.error(err);
-                                    document.getElementById("docx-container").innerHTML = '<div style="text-align: center; padding: 3rem;"><i class="fas fa-exclamation-circle fa-2x" style="color: #ef4444;"></i><h3>Render Error</h3><p>Switching to alternative viewer...</p></div>';
-                                    setTimeout(togglePreviewMode, 1000);
-                                });
-                        }
-                        loadDocxDirectly();
-                    </script>
-
-                    {% elif file.file_type in ['xlsx', 'xls', 'csv'] %}
-                    <div id="spreadsheet-viewer"
-                        style="flex: 1; overflow: auto; background: #525659; padding: 2rem; display: flex; justify-content: center; align-items: flex-start;">
-                        <div id="spreadsheet-container"
-                            style="background: white; color: #333; padding: 1rem; border-radius: 4px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); width: fit-content; max-width: 100%;">
-                            <div style="text-align: center; padding: 2rem; color: #666;"><i
-                                    class="fas fa-circle-notch fa-spin"></i> Loading spreadsheet...</div>
-                        </div>
-                    </div>
-                    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-                    <script>
-                        function loadSheetDirectly() {
-                            fetch('{{ url_for("get_file_base64", file_id=file.id) }}')
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.error) throw new Error(data.error);
-                                    const raw = atob(data.data);
-                                    const uint8Array = new Uint8Array(raw.length);
-                                    for (let i = 0; i < raw.length; i++) uint8Array[i] = raw.charCodeAt(i);
-                                    const workbook = XLSX.read(uint8Array, { type: 'array' });
-                                    const htmlstr = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]], { id: "spreadsheet-table" });
-                                    document.getElementById('spreadsheet-container').innerHTML = htmlstr;
-                                    document.querySelectorAll('#spreadsheet-table td').forEach(td => { td.style.border = '1px solid #ddd'; td.style.padding = '8px'; });
-                                })
-                                .catch(err => {
-                                    console.error(err);
-                                    setTimeout(togglePreviewMode, 1000);
-                                });
-                        }
-                        loadSheetDirectly();
-                    </script>
-
-                    {% else %}
-                    <!-- Fallback for PPTX which has no local renderer -->
-                    <div
-                        style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; color: #888; padding: 2rem;">
-                        <i class="fas fa-file-powerpoint fa-4x" style="margin-bottom: 1.5rem; color: #d04423;"></i>
-                        <h3>Presentation Preview</h3>
-                        <p>Loading document in external viewer...</p>
-                    </div>
-                    <script>setTimeout(togglePreviewMode, 100);</script>
-                    {% endif %}
-                </div>
-
-                <!-- Secondary Viewer: External (Google Docs Viewer) -->
-                <div id="external-viewer" style="display: none; flex: 1;">
-                    <iframe id="google-viewer" src="" style="width: 100%; height: 100%; border: none;"></iframe>
-                </div>
-            </div>
-
-            <script>
-                var previewMode = 'direct';
-                function togglePreviewMode() {
-                    const direct = document.getElementById('direct-viewer');
-                    const external = document.getElementById('external-viewer');
-                    const iframe = document.getElementById('google-viewer');
-                    const btn = document.getElementById('toggle-preview-btn');
-
-                    if (previewMode === 'direct') {
-                        previewMode = 'external';
-                        direct.style.display = 'none';
-                        external.style.display = 'block';
-                        btn.innerHTML = '<i class="fas fa-code"></i> Try Direct Render';
-
-                        // Set Iframe Source (Proxy through Google Docs Viewer)
-                        // Encoding is essential
-                        const fileUrl = window.location.origin + "{{ url_for('file_content', file_id=file.id) }}";
-                        iframe.src = "https://docs.google.com/viewer?url=" + encodeURIComponent(fileUrl) + "&embedded=true";
-                    } else {
-                        previewMode = 'direct';
-                        direct.style.display = 'flex';
-                        external.style.display = 'none';
-                        btn.innerHTML = '<i class="fas fa-sync"></i> Try Alternative Viewer';
-                    }
-                }
-            </script>
-
-            {% elif file.file_type in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'] %}
-            <div
-                style="display: flex; justify-content: center; align-items: center; flex: 1; padding: 2rem; background: #1a1a1a;">
-                <img src="{{ url_for('file_content', file_id=file.id) }}"
-                    style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 0.5rem; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
-            </div>
-
-            {% elif file.file_type in ['txt', 'py', 'java', 'cpp', 'c', 'js', 'html', 'css'] %}
-            <div id="text-container"
-                style="flex: 1; overflow: auto; background: #1e1e1e; color: #d4d4d4; padding: 2rem; font-family: 'Consolas', monospace; font-size: 0.9rem; white-space: pre;">
-                <div style="text-align: center; color: #888;"><i class="fas fa-circle-notch fa-spin"></i> Loading
-                    content...</div>
-            </div>
-            <script>
-                fetch('{{ url_for("get_file_base64", file_id=file.id) }}')
-                    .then(response => response.json())
-                    .then(data => { if (data.data) document.getElementById('text-container').textContent = atob(data.data); })
-                    .catch(e => console.error(e));
-            </script>
-
-            {% elif file.file_type == 'link' %}
-            <div
-                style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 3rem; background: #1a1a1a; color: white;">
-                <i class="fab fa-google-drive fa-5x" style="color: #0F9D58; margin-bottom: 2rem;"></i>
-                <h3>Google Drive Link</h3>
-                <p style="color: #888; margin-bottom: 2rem;">Host: External</p>
-                <a href="{{ file.stored_filename }}" target="_blank" class="btn btn-primary"
-                    style="padding: 1rem 3rem;">Open in Drive <i class="fas fa-external-link-alt"></i></a>
-            </div>
-
-            {% else %}
-            <div
-                style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; background: #1a1a1a; color: white;">
-                <i class="fas fa-file-download fa-5x" style="color: #888; margin-bottom: 2rem;"></i>
-                <h3>No Preview for .{{ file.file_type }}</h3>
-                <p style="margin-bottom: 2rem;">Please download the file to view its content.</p>
-                <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-primary">Download File</a>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Comments Section -->
-    <div style="margin-top: 2rem; max-width: 800px; margin-left: auto; margin-right: auto;">
-        <h3 style="margin-bottom: 1.5rem; color: var(--text-main);">Comments</h3>
-
-        <!-- Comment Form -->
-        <div class="card" style="margin-bottom: 2rem;">
-            <form action="{{ url_for('add_comment', file_id=file.id) }}" method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                    <div class="form-group">
-                        <label class="form-label">Name</label>
-                        <input type="text" name="guest_name" class="form-control" placeholder="Your Name" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Department</label>
-                        <select name="guest_dept" class="form-control" required>
-                            <option value="">Select Dept</option>
-                            <option value="CSE">CSE</option>
-                            <option value="ECE">ECE</option>
-                            <option value="EEE">EEE</option>
-                            <option value="MECH">MECH</option>
-                            <option value="CIVIL">CIVIL</option>
-                            <option value="IT">IT</option>
-                            <option value="AI&DS">AI&DS</option>
-                            <option value="Cyber Security">Cyber Security</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <textarea name="comment" class="form-control" rows="3"
-                        placeholder="Spot an error? Leave a comment..." required></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Post Comment</button>
-            </form>
-        </div>
-
-        <!-- Comments List -->
-        <div class="comments-list">
-            {% for comment in comments %}
-            <div class="card" style="margin-bottom: 1rem; padding: 1.5rem;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <strong style="color: var(--primary);">{{ comment.username }}</strong>
-                    <div style="display: flex; gap: 1rem; align-items: center;">
-                        <span style="color: var(--text-muted); font-size: 0.85rem;">{{
-                            comment.timestamp.strftime('%Y-%m-%d %H:%M') if comment.timestamp is not string else
-                            comment.timestamp }}</span>
-                        {% if session.get('role') == 'admin' %}
-                        <form action="{{ url_for('delete_comment', comment_id=comment.id) }}" method="post"
-                            style="display: inline;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                            <button type="submit" onclick="return confirm('Delete this comment?')"
-                                style="background: none; border: none; color: #ef4444; font-size: 0.85rem; cursor: pointer; padding: 0;">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </form>
+            <!-- File Header -->
+            <div class="flex items-start justify-between gap-6 mb-8">
+                <div class="flex-1">
+                    <div class="flex gap-2 mb-4">
+                        <span
+                            class="px-3 py-1 rounded-full bg-primary/15 text-primary text-[10px] font-bold uppercase tracking-widest">{{
+                            file.dept }}</span>
+                        <span
+                            class="px-3 py-1 rounded-full bg-cyan-400/10 text-cyan-400 text-[10px] font-bold uppercase tracking-widest">{{
+                            file.category }}</span>
+                        {% if file.circular_type and file.circular_type != 'standalone' %}
+                        <span
+                            class="px-3 py-1 rounded-full bg-yellow-300/10 text-yellow-300 text-[10px] font-bold uppercase tracking-widest border border-yellow-300/20">
+                            <i class="fa-solid fa-bullhorn mr-1"></i>{{ file.circular_type|capitalize }}
+                        </span>
                         {% endif %}
                     </div>
+                    <h1 class="text-2xl md:text-3xl font-satoshi font-black tracking-tight leading-tight">{{
+                        file.original_filename }}</h1>
                 </div>
-                <p style="color: var(--text-main); white-space: pre-wrap;">{{ comment.comment }}</p>
+                <div
+                    class="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid {{ file.original_filename|file_icon }} text-primary text-2xl"></i>
+                </div>
+            </div>
+
+            <!-- Description -->
+            {% if file.description %}
+            <div class="p-5 rounded-2xl bg-black/20 border-l-4 border-primary mb-8">
+                <p class="text-slate-300 text-sm leading-relaxed">{{ file.description }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Metadata Grid -->
+            <div
+                class="grid grid-cols-3 gap-0 rounded-2xl bg-white/[0.03] border border-white/10 mb-10 overflow-hidden">
+                <div class="p-5 text-center">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-2">Subject</p>
+                    <p class="font-bold text-white text-sm">{{ file.subject }}</p>
+                </div>
+                <div class="p-5 text-center border-x border-white/10">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-2">Uploaded By</p>
+                    <p class="font-bold text-white text-sm">{{ file.uploader_username }}</p>
+                </div>
+                <div class="p-5 text-center">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-2">Date</p>
+                    <p class="font-bold text-white text-sm">{{ file.upload_date.strftime('%b %d, %Y') if
+                        file.upload_date is not string else file.upload_date[:10] }}</p>
+                </div>
+            </div>
+
+            <!-- Drive Link or Download Block -->
+            {% if file.drive_link %}
+            <div class="text-center py-14 px-6 rounded-2xl bg-blue-500/5 border-2 border-dashed border-blue-500/20">
+                <i class="fa-brands fa-google-drive text-5xl text-blue-400 mb-5 block"></i>
+                <h3 class="text-xl font-bold mb-2">Hosted on Cloud Storage</h3>
+                <p class="text-slate-500 text-sm mb-8 max-w-md mx-auto">This file is stored externally. Click below to
+                    view it in Google Drive.</p>
+                <a href="{{ file.drive_link }}" target="_blank"
+                    class="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-blue-500 text-white font-bold hover:brightness-110 transition-all shadow-lg shadow-blue-500/20">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Open in Drive
+                </a>
             </div>
             {% else %}
-            <p style="text-align: center; color: var(--text-muted);">No comments yet.</p>
-            {% endfor %}
+            <div class="text-center py-14 px-6 rounded-2xl bg-white/[0.02] border border-white/5">
+                <i class="fa-solid {{ file.original_filename|file_icon }} text-6xl text-primary/40 mb-5 block"></i>
+                <h3 class="text-xl font-bold mb-2">Ready to Study</h3>
+                <p class="text-slate-500 text-sm mb-8">Download the material for full access on your device.</p>
+                <a href="{{ url_for('download_file', file_id=file.id) }}"
+                    class="inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-primary text-white font-bold hover:brightness-110 transition-all shadow-[0_16px_40px_rgba(139,92,246,0.3)]">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> Download File
+                </a>
+            </div>
+            {% endif %}
+
         </div>
+
+        <!-- Comments Section -->
+        <div class="mt-12 space-y-8">
+            <h3 class="text-2xl font-black tracking-tight flex items-center gap-3">
+                <i class="fa-solid fa-comments text-primary"></i>
+                Discussion Panel
+            </h3>
+
+            <!-- Comment Form -->
+            <form action="{{ url_for('add_comment', file_id=file.id) }}" method="post" class="space-y-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <div class="relative">
+                    <textarea name="comment_text" rows="3" required
+                        class="w-full bg-white/[0.03] border border-white/10 rounded-[24px] p-6 text-white placeholder-slate-600 focus:outline-none focus:border-primary/50 transition-all resize-none shadow-inner"
+                        placeholder="Share your thoughts or ask a question..."></textarea>
+                    <button type="submit"
+                        class="absolute bottom-4 right-4 p-3 rounded-xl bg-primary text-white hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Comments List -->
+            <div class="space-y-6">
+                {% for comment in comments %}
+                <div class="p-6 rounded-[24px] bg-white/[0.02] border border-white/5 flex gap-5 items-start">
+                    <div
+                        class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-xs font-black shrink-0">
+                        {{ comment.username[0]|upper }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-400">{{ comment.username }}</span>
+                            <span class="text-[9px] font-bold text-slate-700 uppercase tracking-widest">{{
+                                comment.timestamp }}</span>
+                        </div>
+                        <p class="text-slate-300 text-sm leading-relaxed">{{ comment.comment_text }}</p>
+                    </div>
+                    {% if session.get('role') == 'admin' %}
+                    <form action="{{ url_for('delete_comment', comment_id=comment.id) }}" method="post"
+                        class="shrink-0">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <button type="submit"
+                            class="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
+                            onclick="return confirm('Remove this comment permanently?');">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="text-center py-10 rounded-[24px] border border-dashed border-white/5 opacity-40">
+                    <p class="text-slate-500 font-medium">No discussions yet. Start the conversation!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Admin Delete Block -->
+        {% if session.get('role') == 'admin' or session.get('username') == file.uploader_username %}
+        <div class="mt-16 pt-8 border-t border-white/10 flex justify-center">
+            <form action="{{ url_for('delete_file', file_id=file.id) }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit"
+                    class="flex items-center gap-3 px-8 py-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 transition-all font-black text-xs uppercase tracking-[0.2em]"
+                    onclick="return confirm('Permanently delete this material from reality?');">
+                    <i class="fa-solid fa-trash-can"></i> Delete Material
+                </button>
+            </form>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

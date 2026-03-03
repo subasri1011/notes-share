@@ -23,11 +23,27 @@ A secure platform for college students to share and access study materials.
    ```
 4. Open your browser at: `http://127.0.0.1:5000`
 
-## Default Credentials
-**Admin:**
-- Username: `admin`
-- Password: `admin123`
+## Render Deployment Setup
 
-**Student:**
-- Username: `student`
-- Password: `student123`
+### Firebase Authentication Setup
+
+To enable DSCE Google Sign-In on Render:
+
+1. Go to Firebase Console → Project Settings → Service Accounts
+2. Click "Generate new private key" to download the service account JSON
+3. In Render Dashboard, go to your Web Service → Environment → Add Environment Variable
+4. Add a variable named `FIREBASE_CREDENTIALS_JSON` and paste the entire JSON content as the value
+5. Redeploy the application
+
+Alternatively, you can set `GOOGLE_APPLICATION_CREDENTIALS` to point to a credentials file if you prefer file-based authentication.
+
+### Required Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string (from Neon or similar) |
+| `FIREBASE_CREDENTIALS_JSON` | Firebase service account JSON (for DSCE login) |
+| `SECRET_KEY` | Random secret for Flask sessions |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret |

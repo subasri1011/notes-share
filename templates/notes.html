@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="relative pt-8 pb-16">
+
+    <!-- Page Header -->
+    <div class="container mx-auto px-6 mb-10 text-center">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-5">
+            <i class="fa-solid fa-book-open text-primary text-xs"></i>
+            <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Smart Discovery</span>
+        </div>
+        <h1 class="text-5xl md:text-6xl font-satoshi font-black tracking-tight mb-4">Find Your Notes.</h1>
+        <p class="text-base text-slate-400 max-w-lg mx-auto font-medium">
+            Search 50k+ curated lecture notes, question papers, and resources.
+        </p>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="container mx-auto px-6 max-w-3xl mb-10">
+        <form id="search-form" action="{{ url_for('notes') }}" method="get">
+            <div
+                class="flex items-center p-2 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl focus-within:border-primary/50 focus-within:shadow-[0_0_40px_rgba(139,92,246,0.12)] transition-all">
+                <i class="fa-solid fa-magnifying-glass ml-5 text-slate-500 flex-shrink-0"></i>
+                <input type="text" name="q"
+                    class="bg-transparent border-none text-base py-3.5 px-5 w-full text-white placeholder-slate-600 font-medium focus:outline-none"
+                    placeholder="Search notes, subjects, or keywords..." value="{{ request.args.get('q', '') }}">
+                <button type="button"
+                    class="p-3.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors mr-2 text-slate-400 hover:text-white flex-shrink-0"
+                    onclick="toggleFilter()">
+                    <i class="fa-solid fa-sliders text-sm"></i>
+                </button>
+                <button type="submit"
+                    class="px-7 py-3.5 bg-primary text-white font-bold rounded-2xl hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20 flex-shrink-0">
+                    Search
+                </button>
+            </div>
+
+            <!-- Filter Panel -->
+            <div id="filter-panel" style="display:none" class="grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                <select name="subject"
+                    class="bg-white/5 border border-white/10 text-slate-400 font-bold text-xs uppercase tracking-widest px-5 py-3 rounded-2xl focus:outline-none">
+                    <option value="" class="bg-slate-900">All Subjects</option>
+                    {% for s in all_subjects %}
+                    <option value="{{ s }}" class="bg-slate-900" {% if request.args.get('subject')==s %}selected{% endif
+                        %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+                <select name="dept"
+                    class="bg-white/5 border border-white/10 text-slate-400 font-bold text-xs uppercase tracking-widest px-5 py-3 rounded-2xl focus:outline-none">
+                    <option value="" class="bg-slate-900">All Depts</option>
+                    <option value="CSE" class="bg-slate-900" {% if request.args.get('dept')=='CSE' %}selected{% endif
+                        %}>CSE</option>
+                    <option value="ECE" class="bg-slate-900" {% if request.args.get('dept')=='ECE' %}selected{% endif
+                        %}>ECE</option>
+                    <option value="IT" class="bg-slate-900" {% if request.args.get('dept')=='IT' %}selected{% endif %}>
+                        IT</option>
+                    <option value="AI&DS" class="bg-slate-900" {% if request.args.get('dept')=='AI&DS' %}selected{%
+                        endif %}>AI&DS</option>
+                    <option value="EEE" class="bg-slate-900" {% if request.args.get('dept')=='EEE' %}selected{% endif
+                        %}>EEE</option>
+                    <option value="MECH" class="bg-slate-900" {% if request.args.get('dept')=='MECH' %}selected{% endif
+                        %}>MECH</option>
+                </select>
+                <select name="category"
+                    class="bg-white/5 border border-white/10 text-slate-400 font-bold text-xs uppercase tracking-widest px-5 py-3 rounded-2xl focus:outline-none">
+                    <option value="" class="bg-slate-900">All Categories</option>
+                    <option value="Lecture Notes" class="bg-slate-900" {% if
+                        request.args.get('category')=='Lecture Notes' %}selected{% endif %}>Lecture Notes</option>
+                    <option value="Question Paper" class="bg-slate-900" {% if
+                        request.args.get('category')=='Question Paper' %}selected{% endif %}>Question Paper</option>
+                    <option value="Assignment" class="bg-slate-900" {% if request.args.get('category')=='Assignment'
+                        %}selected{% endif %}>Assignment</option>
+                    <option value="Lab Record" class="bg-slate-900" {% if request.args.get('category')=='Lab Record'
+                        %}selected{% endif %}>Lab Record</option>
+                    <option value="Syllabus" class="bg-slate-900" {% if request.args.get('category')=='Syllabus'
+                        %}selected{% endif %}>Syllabus</option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Repository Section -->
+    <div class="container mx-auto px-6">
+        <div class="flex items-center justify-between mb-6 pb-5 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <h2 class="text-xl font-satoshi font-black tracking-tight">Active Repositories</h2>
+                {% if files|length > 0 %}
+                <span
+                    class="px-3 py-1 bg-white/5 rounded-full text-[10px] font-bold text-slate-500 uppercase tracking-widest border border-white/10">{{
+                    files|length }} found</span>
+                {% endif %}
+            </div>
+            {% if session.get('role') == 'admin' %}
+            <a href="{{ url_for('upload_file') }}"
+                class="flex items-center gap-2 px-5 py-2 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white rounded-full transition-all font-bold text-sm">
+                <i class="fa-solid fa-plus"></i> Upload
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="notes-grid">
+            {% for file in files %}
+            <div class="group cursor-pointer p-6 rounded-[24px] bg-white/[0.03] border border-white/[0.06] hover:border-primary/20 hover:bg-white/[0.06] transition-all duration-300 relative overflow-hidden"
+                data-href="{{ url_for('view_file_page', file_id=file.id) }}"
+                onclick="window.location.href=this.dataset.href" role="button">
+                <div
+                    class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 blur-[60px] transition-opacity duration-700 pointer-events-none rounded-full scale-75">
+                </div>
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between mb-6">
+                        <div
+                            class="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-primary/30 group-hover:scale-110 transition-all duration-300">
+                            <i
+                                class="fa-solid {{ file.original_filename|file_icon }} text-lg group-hover:text-primary transition-colors"></i>
+                        </div>
+                        <div class="flex flex-col items-end gap-1">
+                            <span
+                                class="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[9px] font-bold tracking-widest uppercase">{{
+                                file.dept }}</span>
+                            <span
+                                class="px-2.5 py-0.5 rounded-full bg-slate-500/10 text-slate-500 text-[9px] font-bold tracking-widest uppercase">{{
+                                file.category }}</span>
+                        </div>
+                    </div>
+                    <h3
+                        class="font-bold mb-1.5 tracking-tight group-hover:text-primary transition-colors leading-tight">
+                        {% if file.original_filename|length > 50 %}{{ file.original_filename[:47] }}...{% else %}{{
+                        file.original_filename }}{% endif %}
+                    </h3>
+                    <p class="text-slate-500 text-sm mb-6 flex items-center gap-2">
+                        <span class="w-1 h-1 rounded-full bg-primary/60 flex-shrink-0"></span>{{ file.subject }}
+                    </p>
+                    <div class="flex items-center justify-between pt-4 border-t border-white/[0.06]">
+                        <span class="text-xs font-bold text-slate-700 uppercase tracking-widest">{{
+                            file.uploader_username }}</span>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-bold text-slate-700">{{ file.upload_date.strftime('%b %d, %Y')
+                                if
+                                file.upload_date is not string else file.upload_date[:10] }}</span>
+                            {% if session.get('role') == 'admin' or session.get('username') == file.uploader_username %}
+                            <form action="{{ url_for('delete_file', file_id=file.id) }}" method="post"
+                                onclick="event.stopPropagation()">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button type="submit"
+                                    class="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500/60 hover:text-red-400 hover:bg-red-500/20 transition-all flex items-center justify-center"
+                                    onclick="return confirm('Delete this material?');">
+                                    <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-span-full py-28 text-center rounded-[24px] border border-white/5 bg-white/[0.02]">
+                <i class="fa-solid fa-folder-open text-slate-700 text-3xl mb-4 block"></i>
+                <h3 class="text-lg font-bold text-slate-400 mb-2">No Materials Found</h3>
+                <p class="text-slate-600 text-sm">Try a different search or upload the first note!</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if has_more %}
+        <div id="load-more-container" class="text-center mt-12">
+            <button onclick="loadMoreNotes()"
+                class="px-10 py-3.5 rounded-2xl font-bold bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-sm">
+                Load More Materials
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function toggleFilter() {
+        const panel = document.getElementById('filter-panel');
+        if (panel.style.display === 'grid') {
+            panel.style.display = 'none';
+        } else {
+            panel.style.display = 'grid';
+        }
+    }
+
+    let currentPage = Number("{{ page }}");
+    function loadMoreNotes() {
+        currentPage += 1;
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('page', currentPage);
+        fetch(`${window.location.pathname}?${urlParams.toString()}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(r => r.text())
+            .then(html => {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const newGrid = doc.getElementById('notes-grid');
+                const oldGrid = document.getElementById('notes-grid');
+                if (newGrid && oldGrid) Array.from(newGrid.children).forEach(c => oldGrid.appendChild(c));
+                if (!doc.getElementById('load-more-container')) document.getElementById('load-more-container')?.remove();
+            }).catch(() => currentPage--);
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}403 - Access Denied{% endblock %}
+{% block content %}
+<div style="text-align:center; padding: 8rem 2rem;">
+    <i class="fas fa-lock" style="font-size:5rem; color:#f59e0b; margin-bottom:2rem;"></i>
+    <h1 style="font-size:3rem; margin-bottom:1rem;">403</h1>
+    <p style="font-size:1.2rem; color:var(--text-muted); margin-bottom:2rem;">You don't have permission to access this
+        page.</p>
+    <a href="{{ url_for('home') }}" class="btn btn-primary" style="padding:0.75rem 2rem;">Go Home</a>
+</div>
+{% endblock %}
